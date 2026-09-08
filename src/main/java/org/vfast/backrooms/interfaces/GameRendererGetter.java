@@ -1,7 +1,8 @@
 package org.vfast.backrooms.interfaces;
 
-import net.minecraft.client.renderer.ScreenEffectRenderer;
+
+import net.minecraft.client.gui.hud.InGameOverlayRenderer;
 
 public interface GameRendererGetter {
-    ScreenEffectRenderer getScreenEffectRenderer();
+    InGameOverlayRenderer getScreenEffectRenderer();
 }

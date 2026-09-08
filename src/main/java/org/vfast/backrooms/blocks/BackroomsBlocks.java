@@ -1,28 +1,27 @@
 package org.vfast.backrooms.blocks;
 
-import net.minecraft.core.Registry;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.SoundType;
-import net.minecraft.world.level.block.StairBlock;
-import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.block.AbstractBlock;
+import net.minecraft.block.Block;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.StairsBlock;
+import net.minecraft.item.BlockItem;
+import net.minecraft.item.Item;
+import net.minecraft.registry.Registries;
+import net.minecraft.registry.Registry;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.sound.BlockSoundGroup;
+import net.minecraft.util.Identifier;
 import org.vfast.backrooms.BackroomsMod;
 
 import java.util.function.Function;
 
 public class BackroomsBlocks {
     public static final Block FAKE_BLOCK = registerBlock("fake_block", FakeBlock::new,
-            BlockBehaviour.Properties.ofFullCopy(Blocks.INFESTED_COBBLESTONE), false);
+            AbstractBlock.Settings.copy(Blocks.INFESTED_COBBLESTONE), false);
 
     // Moist Silk blocks
     public static final Block MOIST_SILK = registerBlock("moist_silk",
-              BlockBehaviour.Properties.ofFullCopy(Blocks.WOOL.white()).sound(SoundType.WOOL).requiresCorrectToolForDrops().strength(2f));
+              AbstractBlock.Settings.copy(Blocks.WHITE_WOOL).sounds(BlockSoundGroup.WOOL).requiresTool().strength(2f));
     public static final Block MOIST_SILK_OAK_PLANKS = registerBlock("moist_silk_oak_planks",
             createMoistSilkPlanksBlock(Blocks.OAK_PLANKS));
     public static final Block MOIST_SILK_SPRUCE_PLANKS = registerBlock("moist_silk_spruce_planks",
@@ -102,83 +101,83 @@ public class BackroomsBlocks {
 
     // Level 0
     public static final Block BACKROOMS_PORTAL = registerBlock("backrooms_portal", BackroomsPortalBlock::new,
-            BlockBehaviour.Properties.ofFullCopy(Blocks.NETHER_PORTAL).lightLevel((b) -> 0), false);
+            AbstractBlock.Settings.copy(Blocks.NETHER_PORTAL).luminance((b) -> 0), false);
     public static final Block DROPPED_CEILING = registerBlock("dropped_ceiling",
-            BlockBehaviour.Properties.ofFullCopy(Blocks.WOOL.white()).sound(SoundType.WOOL).strength(1f));
+            AbstractBlock.Settings.copy(Blocks.WHITE_WOOL).sounds(BlockSoundGroup.WOOL).strength(1f));
     public static final Block MOIST_CARPET = registerBlock("moist_carpet",
-            BlockBehaviour.Properties.ofFullCopy(Blocks.WOOL.white()).sound(SoundType.WOOL).requiresCorrectToolForDrops().strength(2f));
+            AbstractBlock.Settings.copy(Blocks.WHITE_WOOL).sounds(BlockSoundGroup.WOOL).requiresTool().strength(2f));
     public static final Block FLUORESCENT_LIGHT = registerBlock("fluorescent_light",
-            BlockBehaviour.Properties.ofFullCopy(Blocks.GLASS).sound(SoundType.GLASS).strength(0.1f).lightLevel(state -> 9));
+            AbstractBlock.Settings.copy(Blocks.GLASS).sounds(BlockSoundGroup.GLASS).strength(0.1f).luminance(state -> 9));
     public static final Block BLUE_TAPESTRY = registerBlock("blue_tapestry",
-            BlockBehaviour.Properties.ofFullCopy(Blocks.WOOL.white()).sound(SoundType.WOOL).strength(2f));
+            AbstractBlock.Settings.copy(Blocks.WHITE_WOOL).sounds(BlockSoundGroup.WOOL).strength(2f));
     public static final Block STRIPED_BLUE_TAPESTRY = registerBlock("striped_blue_tapestry",
-            BlockBehaviour.Properties.ofFullCopy(Blocks.WOOL.white()).sound(SoundType.WOOL).strength(2f));
+            AbstractBlock.Settings.copy(Blocks.WHITE_WOOL).sounds(BlockSoundGroup.WOOL).strength(2f));
 //    public static final Block BLUE_TAPE = registerTape("blue_tape");
 
     // Level 1
     public static final Block SMOOTH_IRON = registerBlock("smooth_iron_block",
-            BlockBehaviour.Properties.ofFullCopy(Blocks.IRON_BLOCK).sound(SoundType.METAL));
+            AbstractBlock.Settings.copy(Blocks.IRON_BLOCK).sounds(BlockSoundGroup.METAL));
     public static final Block SCRATCHED_CONCRETE = registerBlock("slightly_scratched_concrete",
             createMarkedConcreteBlock());
     public static final Block STAINED_CONCRETE = registerBlock("stained_concrete",
             createMarkedConcreteBlock());
     public static final Block SCRATCHED_CONCRETE_STAIRS = registerBlock("slightly_scratched_concrete_stairs",
-            (p) -> new StairBlock(SCRATCHED_CONCRETE.defaultBlockState(), p), BlockBehaviour.Properties.ofFullCopy(SCRATCHED_CONCRETE).requiresCorrectToolForDrops(), false);
+            (p) -> new StairsBlock(SCRATCHED_CONCRETE.getDefaultState(), p), AbstractBlock.Settings.copy(SCRATCHED_CONCRETE).requiresTool(), false);
     public static final Block STAINED_CONCRETE_STAIRS = registerBlock("stained_concrete_stairs",
-            (p) -> new StairBlock(STAINED_CONCRETE.defaultBlockState(), p), BlockBehaviour.Properties.ofFullCopy(STAINED_CONCRETE).requiresCorrectToolForDrops(), false);
+            (p) -> new StairsBlock(STAINED_CONCRETE.getDefaultState(), p), AbstractBlock.Settings.copy(STAINED_CONCRETE).requiresTool(), false);
     public static final Block STREET_LIGHT = registerBlock("street_light",
-            BlockBehaviour.Properties.ofFullCopy(Blocks.GLASS).sound(SoundType.GLASS).strength(0.1f).lightLevel(state -> 15));
+            AbstractBlock.Settings.copy(Blocks.GLASS).sounds(BlockSoundGroup.GLASS).strength(0.1f).luminance(state -> 15));
     public static final Block DECAYING_BRICKS = registerBlock("decaying_bricks",
-            BlockBehaviour.Properties.ofFullCopy(Blocks.BRICKS).sound(SoundType.STONE).requiresCorrectToolForDrops());
+            AbstractBlock.Settings.copy(Blocks.BRICKS).sounds(BlockSoundGroup.STONE).requiresTool());
 
     // custom model
     public static final Block AIR_VENT = registerBlock("air_vent",
-            VentBlock::new, BlockBehaviour.Properties.ofFullCopy(Blocks.IRON_BLOCK).sound(SoundType.METAL).requiresCorrectToolForDrops().strength(2f), false);
+            VentBlock::new, AbstractBlock.Settings.copy(Blocks.IRON_BLOCK).sounds(BlockSoundGroup.METAL).requiresTool().strength(2f), false);
 //    public static final Block EXIT_SIGN = registerBlock("exit_sign",
-//            ExitBlock::new, BlockBehaviour.Properties.ofFullCopy(Blocks.IRON_BLOCK).sound(SoundType.METAL).requiresCorrectToolForDrops().strength(2f), false);
+//            ExitBlock::new, AbstractBlock.Properties.copy(Blocks.IRON_BLOCK).sound(SoundType.METAL).requiresTool().strength(2f), false);
     public static final Block WOOLY_CHAIR = registerBlock("wooly_chair",
-            WoolyChairBlock::new, BlockBehaviour.Properties.ofFullCopy(Blocks.WOOL.white()).sound(SoundType.WOOL).noOcclusion().requiresCorrectToolForDrops().strength(2f), false);
+            WoolyChairBlock::new, AbstractBlock.Settings.copy(Blocks.WHITE_WOOL).sounds(BlockSoundGroup.WOOL).nonOpaque().requiresTool().strength(2f), false);
     public static final Block TEXT_SIGN = registerBlock("text_ceiling_sign",
-            TextSignBlock::new, BlockBehaviour.Properties.ofFullCopy(Blocks.OAK_HANGING_SIGN).requiresCorrectToolForDrops(), false);
+            TextSignBlock::new, AbstractBlock.Settings.copy(Blocks.OAK_HANGING_SIGN).requiresTool(), false);
     public static final Block CRT_TV = registerBlock("crt_tv",
-            TvBlock::new, BlockBehaviour.Properties.ofFullCopy(Blocks.JUNGLE_PLANKS).requiresCorrectToolForDrops(), false);
+            TvBlock::new, AbstractBlock.Settings.copy(Blocks.JUNGLE_PLANKS).requiresTool(), false);
 
-    private static BlockBehaviour.Properties createMoistSilkPlanksBlock(Block sourceBlock) {
-        return BlockBehaviour.Properties.ofFullCopy(sourceBlock).sound(SoundType.WOOD).strength(2f);
+    private static AbstractBlock.Settings createMoistSilkPlanksBlock(Block sourceBlock) {
+        return AbstractBlock.Settings.copy(sourceBlock).sounds(BlockSoundGroup.WOOD).strength(2f);
     }
 
-    private static BlockBehaviour.Properties createMarkedConcreteBlock() {
-        return BlockBehaviour.Properties.ofFullCopy(Blocks.CONCRETE.black()).sound(SoundType.STONE);
+    private static AbstractBlock.Settings createMarkedConcreteBlock() {
+        return AbstractBlock.Settings.copy(Blocks.BLACK_CONCRETE).sounds(BlockSoundGroup.STONE);
     }
 
-    private static Block registerBlock(String name, Function<BlockBehaviour.Properties, Block> blockConstructor, BlockBehaviour.Properties properties, Boolean itemless) {
-        ResourceKey<Block> key = ResourceKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath(BackroomsMod.ID, name));
+    private static Block registerBlock(String name, Function<AbstractBlock.Settings, Block> blockConstructor, AbstractBlock.Settings properties, Boolean itemless) {
+        RegistryKey<Block> key = RegistryKey.of(Registries.BLOCK, Identifier.of(BackroomsMod.ID, name));
         Block block = blockConstructor.apply(properties.setId(key));
 
         if (!itemless) {
             BackroomsBlocks.registerBlockItem(name, block);
         }
 
-        return Registry.register(BuiltInRegistries.BLOCK, Identifier.fromNamespaceAndPath(BackroomsMod.ID, name), block);
+        return Registry.register(Registries.BLOCK, Identifier.of(BackroomsMod.ID, name), block);
     }
 
-    private static Block registerBlock(String name, BlockBehaviour.Properties properties) {
+    private static Block registerBlock(String name, AbstractBlock.Settings properties) {
         return registerBlock(name, Block::new, properties, false);
     }
 
     private static Block registerTape(String name) {
-        BlockBehaviour.Properties properties = BlockBehaviour.Properties.ofFullCopy(Blocks.REDSTONE_WIRE);
-        ResourceKey<Block> key = ResourceKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath(BackroomsMod.ID, name));
+        AbstractBlock.Settings properties = AbstractBlock.Settings.copy(Blocks.REDSTONE_WIRE);
+        RegistryKey<Block> key = RegistryKey.of(Registries.BLOCK, Identifier.of(BackroomsMod.ID, name));
         Block block = new TapeBlock(properties.setId(key));
 
         BackroomsBlocks.registerBlockItem(name, block);
 
-        return Registry.register(BuiltInRegistries.BLOCK, Identifier.fromNamespaceAndPath(BackroomsMod.ID, name), block);
+        return Registry.register(Registries.BLOCK, Identifier.of(BackroomsMod.ID, name), block);
     }
 
     private static void registerBlockItem(String name, Block block) {
-        ResourceKey<Item> key = ResourceKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath(BackroomsMod.ID, name));
-        Registry.register(BuiltInRegistries.ITEM, key, new BlockItem(block, new Item.Properties().setId(key).useBlockDescriptionPrefix()));
+        RegistryKey<Item> key = RegistryKey.of(Registries.ITEM, Identifier.of(BackroomsMod.ID, name));
+        Registry.register(Registries.ITEM, key, new BlockItem(block, new Item.Properties().setId(key).useBlockDescriptionPrefix()));
     }
 
     public static void registerBlocks() {

@@ -1,12 +1,11 @@
 package org.vfast.backrooms.mixins;
 
-import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.ScreenEffectRenderer;
-import net.minecraft.client.renderer.SubmitNodeCollector;
-import net.minecraft.client.renderer.block.BlockStateModelSet;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.block.BlockState;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.hud.InGameOverlayRenderer;
+import net.minecraft.client.render.model.BlockStatesLoader;
+import net.minecraft.client.texture.Sprite;
+import net.minecraft.client.util.math.MatrixStack;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -17,15 +16,15 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.vfast.backrooms.interfaces.Suffocator;
 
-@Mixin(ScreenEffectRenderer.class)
+@Mixin(InGameOverlayRenderer.class)
 public abstract class ScreenEffectRendererMixins implements Suffocator {
 
     @Shadow
     @Final
-    private Minecraft minecraft;
+    private MinecraftClient minecraft;
 
     @Shadow
-    private static void submitBlockSprite(TextureAtlasSprite sprite, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int color) {}
+    private static void submitBlockSprite(Sprite sprite, MatrixStack poseStack, SubmitNodeCollector submitNodeCollector, int color) {}
 
     @Unique
     @Nullable
@@ -34,9 +33,9 @@ public abstract class ScreenEffectRendererMixins implements Suffocator {
     @Inject(method = "submit", at = @At(value = "HEAD"))
     private void suffocatingIn(boolean isFirstPerson, boolean isSleeping, float partialTicks, SubmitNodeCollector submitNodeCollector, boolean hideGui, CallbackInfo ci) {
         if (this.suffocatingState != null) {
-            PoseStack poseStack = new PoseStack();
-            BlockStateModelSet blockStateModelSet = this.minecraft.getModelManager().getBlockStateModelSet();
-            TextureAtlasSprite sprite = blockStateModelSet.getParticleMaterial(this.suffocatingState).sprite();
+            MatrixStack poseStack = new MatrixStack();
+            BlockStatesLoader blockStateModelSet = this.minecraft.getModelManager().getBlockStateModelSet();
+            Sprite sprite = blockStateModelSet.getParticleMaterial(this.suffocatingState).sprite();
             submitBlockSprite(sprite, poseStack, submitNodeCollector, -15132391);
         }
     }

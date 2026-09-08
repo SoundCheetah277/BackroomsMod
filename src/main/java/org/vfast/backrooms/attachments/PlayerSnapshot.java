@@ -1,13 +1,12 @@
 package org.vfast.backrooms.attachments;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.GlobalPos;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.storage.LevelData;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.inventory.Inventory;
+import net.minecraft.item.ItemStack;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
+import net.minecraft.world.WorldProperties;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -19,19 +18,19 @@ public final class PlayerSnapshot {
     // 36 inv + 4 armor + 1 offhand
     private static final int INVENTORY_SIZE = 41;
 
-    public static void saveAndClear(ServerPlayer player) {
+    public static void saveAndClear(ServerPlayerEntity player) {
         if (PlayerSnapshot.hasSavedData(player)) return;
 
         player.setAttached(BackroomsAttachments.SAVED_INVENTORY, capture(player));
-        player.getInventory().clearContent();
+        player.getInventory().clear();
 
-        ServerPlayer.RespawnConfig respawn = player.getRespawnConfig();
-        if (respawn != null && respawn.respawnData().dimension() == Level.OVERWORLD) {
+        ServerPlayerEntity.RespawnConfig respawn = player.getRespawnConfig();
+        if (respawn != null && respawn.respawnData().dimension() == World.OVERWORLD) {
             player.setAttached(BackroomsAttachments.SAVED_SPAWN, respawn.respawnData().pos());
         }
     }
 
-    public static void restore(ServerPlayer player) {
+    public static void restore(ServerPlayerEntity player) {
         List<ItemStack> snapshot = player.getAttachedOrElse(BackroomsAttachments.SAVED_INVENTORY, Collections.emptyList());
         if (snapshot.isEmpty()) return;
 
@@ -40,20 +39,20 @@ public final class PlayerSnapshot {
         if (player.hasAttached(BackroomsAttachments.SAVED_SPAWN)) {
             BlockPos spawn = player.getAttached(BackroomsAttachments.SAVED_SPAWN);
             if (spawn != null) {
-                ServerPlayer.RespawnConfig config = new ServerPlayer.RespawnConfig(LevelData.RespawnData.of(Level.OVERWORLD, spawn, 0.0f, 0.0f), true);
+                ServerPlayerEntity.RespawnConfig config = new ServerPlayerEntity.RespawnConfig(WorldProperties.RespawnData.of(World.OVERWORLD, spawn, 0.0f, 0.0f), true);
                 player.setRespawnPosition(config, false);
                 player.removeAttached(BackroomsAttachments.SAVED_SPAWN);
             }
         }
     }
 
-    public static int addSleepCount(Player player) {
+    public static int addSleepCount(PlayerEntity player) {
         int currentCount = player.getAttachedOrElse(BackroomsAttachments.SLEEP_COUNT, 0);
         player.setAttached(BackroomsAttachments.SLEEP_COUNT, currentCount + 1);
         return currentCount + 1;
     }
 
-    private static List<ItemStack> capture(Player player) {
+    private static List<ItemStack> capture(PlayerEntity player) {
         Inventory inv = player.getInventory();
         List<ItemStack> slots = new ArrayList<>(INVENTORY_SIZE);
 
@@ -64,17 +63,17 @@ public final class PlayerSnapshot {
         return slots;
     }
 
-    private static void apply(Player player, List<ItemStack> slots) {
+    private static void apply(PlayerEntity player, List<ItemStack> slots) {
         Inventory inv = player.getInventory();
-        inv.clearContent();
+        inv.clear();
 
-        for (int i = 0; i < inv.getContainerSize(); i++) {
+        for (int i = 0; i < inv.size(); i++) {
             ItemStack item = slots.get(i).copy();
-            inv.setItem(i, item);
+            inv.setStack(i, item);
         }
     }
 
-    private static boolean hasSavedData(Player player) {
+    private static boolean hasSavedData(PlayerEntity player) {
         return player.hasAttached(BackroomsAttachments.SAVED_INVENTORY);
     }
 }

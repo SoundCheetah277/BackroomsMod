@@ -1,22 +1,17 @@
 package org.vfast.backrooms.blocks.entity;
 
 import com.mojang.serialization.Codec;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.ClientGamePacketListener;
-import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
-import net.minecraft.util.Mth;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraft.world.level.block.state.properties.EnumProperty;
-import net.minecraft.world.level.storage.ValueInput;
-import net.minecraft.world.level.storage.ValueOutput;
-import net.minecraft.world.phys.Vec3;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.network.listener.ClientPlayPacketListener;
+import net.minecraft.network.packet.Packet;
+import net.minecraft.network.packet.s2c.play.BlockEntityUpdateS2CPacket;
+import net.minecraft.registry.RegistryWrapper;
+import net.minecraft.state.property.EnumProperty;
+import net.minecraft.state.property.Properties;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import org.vfast.backrooms.blocks.interfaces.CeilingSupportSign;
 import org.vfast.backrooms.blocks.interfaces.TextBlockEntity;
 
@@ -27,7 +22,7 @@ public class TextSignBlockEntity extends BlockEntity implements TextBlockEntity 
     private String backText;
     private Direction blockRotation;
 
-    public static final EnumProperty<Direction> ROTATION = BlockStateProperties.HORIZONTAL_FACING;
+    public static final EnumProperty<Direction> ROTATION = Properties.HORIZONTAL_FACING;
 
     public TextSignBlockEntity(BlockPos worldPosition, BlockState blockState) {
         super(BackroomsBlockEntities.TEXT_SIGN_ENTITY, worldPosition, blockState);
@@ -98,16 +93,16 @@ public class TextSignBlockEntity extends BlockEntity implements TextBlockEntity 
     private void markUpdated() {
         this.setChanged();
         assert this.level != null;
-        this.level.sendBlockUpdated(this.getBlockPos(), this.getBlockState(), this.getBlockState(), 3);
+        this.level.sendBlockUpdated(this.getPos(), this.getCachedState(), this.getCachedState(), 3);
     }
 
     @Override
-    public CompoundTag getUpdateTag(HolderLookup.Provider registryLookup) {
-        return saveWithoutMetadata(registryLookup);
+    public NbtCompound getUpdateTag(RegistryWrapper.WrapperLookup registryLookup) {
+        return createNbt(registryLookup);
     }
 
     @Override
-    public Packet<ClientGamePacketListener> getUpdatePacket() {
-        return ClientboundBlockEntityDataPacket.create(this);
+    public Packet<ClientPlayPacketListener> getUpdatePacket() {
+        return BlockEntityUpdateS2CPacket.create(this);
     }
 }

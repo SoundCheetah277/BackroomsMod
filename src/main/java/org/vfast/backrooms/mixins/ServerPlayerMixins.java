@@ -1,18 +1,17 @@
 package org.vfast.backrooms.mixins;
 
 import com.mojang.authlib.GameProfile;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceKey;
+import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.registry.Registries;
+import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.effect.MobEffects;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.phys.Vec3;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -27,10 +26,10 @@ import org.vfast.backrooms.world.BackroomsGameRules;
 import org.vfast.backrooms.world.BackroomsLevels;
 import org.vfast.backrooms.world.damage.BackroomsDamageTypes;
 
-@Mixin(ServerPlayer.class)
-public abstract class ServerPlayerMixins extends Player implements DarknessDamage, Noclippable {
+@Mixin(ServerPlayerEntity.class)
+public abstract class ServerPlayerMixins extends PlayerEntity implements DarknessDamage, Noclippable {
     @Shadow
-    public abstract ServerLevel level();
+    public abstract ServerWorld level();
 
     @Unique
     private int lastNoclipTick = 0;
@@ -47,7 +46,7 @@ public abstract class ServerPlayerMixins extends Player implements DarknessDamag
     @Unique
     private static final int MINIMUM_LIGHT = 1;
 
-    public ServerPlayerMixins(Level level, GameProfile gameProfile) {
+    public ServerPlayerMixins(World level, GameProfile gameProfile) {
         super(level, gameProfile);
     }
 
@@ -56,14 +55,14 @@ public abstract class ServerPlayerMixins extends Player implements DarknessDamag
         boolean fullyImmersed = this.level().getGameRules().get(BackroomsGameRules.FULL_IMMERSION);
 
         if (fullyImmersed) {
-            ResourceKey<Level> levelKey = this.level().dimension();
+            RegistryKey<World> levelKey = this.level().dimension();
 
             boolean canNoclip = !this.lookingForNoclip && this.tickCount >= this.lastNoclipTick + Noclippable.NOCLIP_TICKS && !this.getAbilities().invulnerable;
 
             this.tickFood(levelKey);
             if (levelKey == BackroomsLevels.LEVEL_0) {
                 this.tickDarkness();
-            } else if (levelKey == Level.OVERWORLD && canNoclip) {
+            } else if (levelKey == World.OVERWORLD && canNoclip) {
                 this.lookingForNoclip = true;
                 this.tickNoclip();
             }
@@ -75,7 +74,7 @@ public abstract class ServerPlayerMixins extends Player implements DarknessDamag
         BlockPos replacer = this.lookAround(this.level(), this.blockPosition());
         assert replacer != null;
 
-        ServerLevel level = this.level();
+        ServerWorld level = this.level();
         level.setBlockAndUpdate(replacer, BackroomsBlocks.FAKE_BLOCK.defaultBlockState());
         level.setBlockAndUpdate(replacer.below(1), BackroomsBlocks.FAKE_BLOCK.defaultBlockState());
         level.setBlockAndUpdate(replacer.below(2), BackroomsBlocks.FAKE_BLOCK.defaultBlockState());
@@ -108,24 +107,24 @@ public abstract class ServerPlayerMixins extends Player implements DarknessDamag
     public void prevent() {
         int effectDuration = this.getDarknessDuration();
 
-        if (this.hasEffect(MobEffects.DARKNESS) && this.oldDuration != effectDuration) {
+        if (this.hasEffect(StatusEffects.DARKNESS) && this.oldDuration != effectDuration) {
             this.oldDuration = effectDuration;
-            this.removeEffect(MobEffects.DARKNESS);
+            this.removeEffect(StatusEffects.DARKNESS);
         }
 
-        MobEffectInstance mobEffect = new MobEffectInstance(MobEffects.DARKNESS, effectDuration * 20, 0, false, false, false);
+        StatusEffectInstance mobEffect = new StatusEffectInstance(StatusEffects.DARKNESS, effectDuration * 20, 0, false, false, false);
         this.addEffect(mobEffect);
     }
 
     @Override
     @Unique
     public void performAttack() {
-        ResourceKey<Level> levelKey = this.level().dimension();
+        RegistryKey<World> levelKey = this.level().dimension();
 
         MinecraftServer server = this.level().getServer();
         assert server != null;
 
-        ServerLevel serverLevel = server.getLevel(levelKey);
+        ServerWorld serverLevel = server.getWorld(levelKey);
         assert serverLevel != null;
 
         DamageSource levelDamage = new DamageSource(
@@ -151,7 +150,7 @@ public abstract class ServerPlayerMixins extends Player implements DarknessDamag
     }
 
     @Unique
-    private void tickFood(ResourceKey<Level> dimension) {
+    private void tickFood(RegistryKey<World> dimension) {
         if (BackroomsLevels.isBackrooms(dimension)) {
             this.foodData.setFoodLevel(20);
         }

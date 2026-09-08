@@ -3,46 +3,45 @@ package org.vfast.backrooms.blocks;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.mojang.serialization.MapCodec;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.util.RandomSource;
-import net.minecraft.util.StringRepresentable;
-import net.minecraft.world.item.context.BlockPlaceContext;
-import net.minecraft.world.level.BlockGetter;
-import net.minecraft.world.level.LevelReader;
-import net.minecraft.world.level.ScheduledTickAccess;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.Mirror;
-import net.minecraft.world.level.block.Rotation;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.StateDefinition;
-import net.minecraft.world.level.block.state.properties.BooleanProperty;
-import net.minecraft.world.level.block.state.properties.EnumProperty;
-import net.minecraft.world.phys.shapes.CollisionContext;
-import net.minecraft.world.phys.shapes.Shapes;
-import net.minecraft.world.phys.shapes.VoxelShape;
-import org.jspecify.annotations.NonNull;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.ShapeContext;
+import net.minecraft.item.ItemPlacementContext;
+import net.minecraft.state.StateManager;
+import net.minecraft.state.property.BooleanProperty;
+import net.minecraft.state.property.EnumProperty;
+import net.minecraft.util.BlockMirror;
+import net.minecraft.util.BlockRotation;
+import net.minecraft.util.StringIdentifiable;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.random.Random;
+import net.minecraft.util.shape.VoxelShape;
+import net.minecraft.util.shape.VoxelShapes;
+import net.minecraft.world.WorldView;
+import net.minecraft.world.tick.OrderedTick;
 
+import javax.swing.text.html.BlockView;
 import java.util.Map;
 import java.util.function.Function;
 
 public class TapeBlock extends Block {
-    public static final MapCodec<TapeBlock> CODEC = simpleCodec(TapeBlock::new);
+    public static final MapCodec<TapeBlock> CODEC = createCodec(TapeBlock::new);
 
     @Override
     public MapCodec<TapeBlock> codec() {
         return CODEC;
     }
 
-    public static final EnumProperty<Direction> FACE = EnumProperty.create("face", Direction.class);
+    public static final EnumProperty<Direction> FACE = EnumProperty.of("face", Direction.class);
 
-    public static final EnumProperty<TapeBlock.Side> NORTH = EnumProperty.create("north", TapeBlock.Side.class);;
-    public static final EnumProperty<TapeBlock.Side> EAST  = EnumProperty.create("east", TapeBlock.Side.class);;
-    public static final EnumProperty<TapeBlock.Side> SOUTH = EnumProperty.create("south", TapeBlock.Side.class);;
-    public static final EnumProperty<TapeBlock.Side> WEST  = EnumProperty.create("west", TapeBlock.Side.class);;
+    public static final EnumProperty<Side> NORTH = EnumProperty.of("north", TapeBlock.Side.class);;
+    public static final EnumProperty<TapeBlock.Side> EAST  = EnumProperty.of("east", TapeBlock.Side.class);;
+    public static final EnumProperty<TapeBlock.Side> SOUTH = EnumProperty.of("south", TapeBlock.Side.class);;
+    public static final EnumProperty<TapeBlock.Side> WEST  = EnumProperty.of("west", TapeBlock.Side.class);;
 
-    public static final BooleanProperty FACE_OPPOSITE = BooleanProperty.create("opposite");
+    public static final BooleanProperty FACE_OPPOSITE = BooleanProperty.of("opposite");
 
     private static final Map<Direction, Direction[]> TANGENTS_BY_FACE;
     private static final EnumProperty<TapeBlock.Side>[] SLOT_PROPS = new EnumProperty[]{ NORTH, EAST, SOUTH, WEST };
@@ -90,12 +89,12 @@ public class TapeBlock extends Block {
     }
 
     private static Map<Direction, VoxelShape> buildDotShapes() {
-        VoxelShape floorDot = Block.box(3, 0,  3, 13,  1, 13);
-        VoxelShape ceilDot  = Block.box(3, 15, 3, 13, 16, 13);
-        VoxelShape northDot = Block.box(3,  3, 0, 13, 13,  1);
-        VoxelShape southDot = Block.box(3,  3, 15, 13, 13, 16);
-        VoxelShape westDot  = Block.box(0,  3, 3,  1, 13, 13);
-        VoxelShape eastDot  = Block.box(15, 3, 3, 16, 13, 13);
+        VoxelShape floorDot = Block.createCuboidShape(3, 0,  3, 13,  1, 13);
+        VoxelShape ceilDot  = Block.createCuboidShape(3, 15, 3, 13, 16, 13);
+        VoxelShape northDot = Block.createCuboidShape(3,  3, 0, 13, 13,  1);
+        VoxelShape southDot = Block.createCuboidShape(3,  3, 15, 13, 13, 16);
+        VoxelShape westDot  = Block.createCuboidShape(0,  3, 3,  1, 13, 13);
+        VoxelShape eastDot  = Block.createCuboidShape(15, 3, 3, 16, 13, 13);
 
         return ImmutableMap.<Direction, VoxelShape>builder()
                 .put(Direction.DOWN,  floorDot)
@@ -113,7 +112,7 @@ public class TapeBlock extends Block {
 
         boolean isOpposite = state.getValue(FACE_OPPOSITE);
         if (isOpposite) {
-            shape = Shapes.or(shape, DOT_SHAPES.get(face.getOpposite()));
+            shape = VoxelShapes.union(shape, DOT_SHAPES.get(face.getOpposite()));
         }
 
         Direction[] tangents = TANGENTS_BY_FACE.get(face);
@@ -126,13 +125,13 @@ public class TapeBlock extends Block {
             VoxelShape arm = buildArmShape(face, armDir, side == TapeBlock.Side.UP);
 
             if (arm != null) {
-                shape = Shapes.or(shape, arm);
+                shape = VoxelShapes.union(shape, arm);
             }
 
             if (isOpposite) {
                 VoxelShape armOpposite = buildArmShape(face.getOpposite(), armDir, false); // always flat cause it's done in `arm`
                 if (armOpposite != null) {
-                    shape = Shapes.or(shape, armOpposite);
+                    shape = VoxelShapes.union(shape, armOpposite);
                 }
             }
         }
@@ -156,10 +155,10 @@ public class TapeBlock extends Block {
                     case WEST  -> { x0=0; x1=8; z0=W;  z1=E;  }
                     default    -> { x0=8; x1=16; z0=W; z1=E;  }
                 }
-                VoxelShape flat = Block.box(x0, y0, z0, x1, y1, z1);
+                VoxelShape flat = Block.createCuboidShape(x0, y0, z0, x1, y1, z1);
                 if (!bendUp) return flat;
                 VoxelShape rise = buildRise(face, armDir);
-                return rise == null ? flat : Shapes.or(flat, rise);
+                return rise == null ? flat : VoxelShapes.union(flat, rise);
             }
             case UP -> {
                 y0 = 15; y1 = 16;
@@ -169,10 +168,10 @@ public class TapeBlock extends Block {
                     case WEST  -> { x0=0; x1=8; z0=W;  z1=E;  }
                     default    -> { x0=8; x1=16; z0=W; z1=E;  }
                 }
-                VoxelShape flat = Block.box(x0, y0, z0, x1, y1, z1);
+                VoxelShape flat = Block.createCuboidShape(x0, y0, z0, x1, y1, z1);
                 if (!bendUp) return flat;
                 VoxelShape rise = buildRise(face, armDir);
-                return rise == null ? flat : Shapes.or(flat, rise);
+                return rise == null ? flat : VoxelShapes.union(flat, rise);
             }
             case NORTH -> {
                 z0 = 0; z1 = 1;
@@ -182,10 +181,10 @@ public class TapeBlock extends Block {
                     case DOWN  -> { x0=W;  x1=E;  y0=0; y1=8; }
                     default    -> { x0=W;  x1=E;  y0=8; y1=16; }
                 }
-                VoxelShape flat = Block.box(x0, y0, z0, x1, y1, z1);
+                VoxelShape flat = Block.createCuboidShape(x0, y0, z0, x1, y1, z1);
                 if (!bendUp) return flat;
                 VoxelShape rise = buildRise(face, armDir);
-                return rise == null ? flat : Shapes.or(flat, rise);
+                return rise == null ? flat :VoxelShapes.union(flat, rise);
             }
             case SOUTH -> {
                 z0 = 15; z1 = 16;
@@ -195,10 +194,10 @@ public class TapeBlock extends Block {
                     case DOWN  -> { x0=W;  x1=E;  y0=0; y1=8; }
                     default    -> { x0=W;  x1=E;  y0=8; y1=16; }
                 }
-                VoxelShape flat = Block.box(x0, y0, z0, x1, y1, z1);
+                VoxelShape flat = Block.createCuboidShape(x0, y0, z0, x1, y1, z1);
                 if (!bendUp) return flat;
                 VoxelShape rise = buildRise(face, armDir);
-                return rise == null ? flat : Shapes.or(flat, rise);
+                return rise == null ? flat :VoxelShapes.union(flat, rise);
             }
             case WEST -> {
                 x0 = 0; x1 = 1;
@@ -208,10 +207,10 @@ public class TapeBlock extends Block {
                     case DOWN  -> { z0=W;  z1=E;  y0=0; y1=8; }
                     default    -> { z0=W;  z1=E;  y0=8; y1=16; }
                 }
-                VoxelShape flat = Block.box(x0, y0, z0, x1, y1, z1);
+                VoxelShape flat = Block.createCuboidShape(x0, y0, z0, x1, y1, z1);
                 if (!bendUp) return flat;
                 VoxelShape rise = buildRise(face, armDir);
-                return rise == null ? flat : Shapes.or(flat, rise);
+                return rise == null ? flat : VoxelShapes.union(flat, rise);
             }
             case EAST -> {
                 x0 = 15; x1 = 16;
@@ -221,10 +220,10 @@ public class TapeBlock extends Block {
                     case DOWN  -> { z0=W;  z1=E;  y0=0; y1=8; }
                     default    -> { z0=W;  z1=E;  y0=8; y1=16; }
                 }
-                VoxelShape flat = Block.box(x0, y0, z0, x1, y1, z1);
+                VoxelShape flat = Block.createCuboidShape(x0, y0, z0, x1, y1, z1);
                 if (!bendUp) return flat;
                 VoxelShape rise = buildRise(face, armDir);
-                return rise == null ? flat : Shapes.or(flat, rise);
+                return rise == null ? flat : VoxelShapes.union(flat, rise);
             }
             default -> { return null; }
         }
@@ -235,36 +234,36 @@ public class TapeBlock extends Block {
 
         return switch (face) {
             case DOWN, UP -> switch (armDir) {
-                case NORTH -> Block.box(W, 0, 0, E, 16, 1);
-                case SOUTH -> Block.box(W, 0, 15, E, 16, 16);
-                case WEST -> Block.box(0, 0, W,  1, 16,  E);
-                case EAST -> Block.box(15, 0, W, 16, 16,  E);
+                case NORTH -> Block.createCuboidShape(W, 0, 0, E, 16, 1);
+                case SOUTH -> Block.createCuboidShape(W, 0, 15, E, 16, 16);
+                case WEST -> Block.createCuboidShape(0, 0, W,  1, 16,  E);
+                case EAST -> Block.createCuboidShape(15, 0, W, 16, 16,  E);
                 default -> null;
             };
             case NORTH, SOUTH -> switch (armDir) {
-                case WEST -> Block.box(0, W, 0, 1,  E, 16);
-                case EAST -> Block.box(15, W, 0, 16,  E, 16);
-                case DOWN -> Block.box(W, 0, 0, E, 1, 16);
-                case UP -> Block.box(W, 15, 0, E, 16, 16);
+                case WEST -> Block.createCuboidShape(0, W, 0, 1,  E, 16);
+                case EAST -> Block.createCuboidShape(15, W, 0, 16,  E, 16);
+                case DOWN -> Block.createCuboidShape(W, 0, 0, E, 1, 16);
+                case UP -> Block.createCuboidShape(W, 15, 0, E, 16, 16);
                 default -> null;
             };
             case WEST, EAST -> switch (armDir) {
-                case NORTH -> Block.box(0, W,  0,  16,  E,  1);
-                case SOUTH -> Block.box(0, W, 15,  16,  E, 16);
-                case DOWN -> Block.box(0,  0, W,  16,  1,  E);
-                case UP -> Block.box(0, 15, W,  16, 16,  E);
+                case NORTH -> Block.createCuboidShape(0, W,  0,  16,  E,  1);
+                case SOUTH -> Block.createCuboidShape(0, W, 15,  16,  E, 16);
+                case DOWN -> Block.createCuboidShape(0,  0, W,  16,  1,  E);
+                case UP -> Block.createCuboidShape(0, 15, W,  16, 16,  E);
                 default -> null;
             };
         };
     }
 
     @Override
-    protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+    protected VoxelShape getShape(BlockState state, BlockView level, BlockPos pos, ShapeContext context) {
         return this.shapes.apply(state);
     }
 
     @Override
-    public BlockState getStateForPlacement(BlockPlaceContext context) {
+    public BlockState getStateForPlacement(ItemPlacementContext context) {
         Direction clickedFace = context.getClickedFace();
         Direction face = clickedFace.getOpposite();
         BlockState base = this.defaultBlockState().setValue(FACE, face);
@@ -272,7 +271,7 @@ public class TapeBlock extends Block {
     }
 
     @Override
-    protected boolean canSurvive(BlockState state, LevelReader level, BlockPos pos) {
+    protected boolean canSurvive(BlockState state, WorldView level, BlockPos pos) {
         Direction face = state.getValue(FACE);
         BlockPos supportPos = pos.relative(face);
         BlockState supportState = level.getBlockState(supportPos);
@@ -280,17 +279,17 @@ public class TapeBlock extends Block {
     }
 
     @Override
-    protected BlockState updateShape(BlockState state, LevelReader level, ScheduledTickAccess ticks, BlockPos pos, Direction directionToNeighbour, BlockPos neighbourPos, BlockState neighbourState, RandomSource random) {
+    protected BlockState updateShape(BlockState state, WorldView level, OrderedTick ticks, BlockPos pos, Direction directionToNeighbour, BlockPos neighbourPos, BlockState neighbourState, Random random) {
         Direction face = state.getValue(FACE);
 
         if (directionToNeighbour == face) {
-            return state.canSurvive(level, pos) ? this.getConnectionState(level, state, pos) : Blocks.AIR.defaultBlockState();
+            return state.canPlaceAt(level, pos) ? this.getConnectionState(level, state, pos) : Blocks.AIR.defaultBlockState();
         }
 
         return this.getConnectionState(level, state, pos);
     }
 
-    private BlockState getConnectionState(BlockGetter level, BlockState state, BlockPos pos) {
+    private BlockState getConnectionState(BlockView level, BlockState state, BlockPos pos) {
         Direction face = state.getValue(FACE);
         boolean wasDot = isDot(state);
 
@@ -314,7 +313,7 @@ public class TapeBlock extends Block {
         return state;
     }
 
-    private BlockState getTapeConnections(BlockGetter level, BlockState state, BlockPos pos) {
+    private BlockState getTapeConnections(BlockView level, BlockState state, BlockPos pos) {
         Direction face = state.getValue(FACE);
         Direction[] tangents = TANGENTS_BY_FACE.get(face);
 
@@ -326,7 +325,7 @@ public class TapeBlock extends Block {
         return state;
     }
 
-    private TapeBlock.Side getConnectingSide(BlockGetter level, BlockPos pos, Direction dir, Direction face) {
+    private TapeBlock.Side getConnectingSide(BlockView level, BlockPos pos, Direction dir, Direction face) {
         BlockPos neighbourPos = pos.relative(dir);
         BlockState neighbourState = level.getBlockState(neighbourPos);
 
@@ -363,7 +362,7 @@ public class TapeBlock extends Block {
     }
 
     @Override
-    protected BlockState rotate(BlockState state, Rotation rotation) {
+    protected BlockState rotate(BlockState state, BlockRotation rotation) {
         Direction newFace = rotation.rotate(state.getValue(FACE));
         state = state.setValue(FACE, newFace);
 
@@ -388,7 +387,7 @@ public class TapeBlock extends Block {
     }
 
     @Override
-    protected BlockState mirror(BlockState state, Mirror mirror) {
+    protected BlockState mirror(BlockState state, BlockMirror mirror) {
         return switch (mirror) {
             case LEFT_RIGHT -> state
                     .setValue(NORTH, state.getValue(SOUTH))
@@ -401,11 +400,11 @@ public class TapeBlock extends Block {
     }
 
     @Override
-    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+    protected void createBlockStateDefinition(StateManager.Builder<Block, BlockState> builder) {
         builder.add(FACE, NORTH, EAST, SOUTH, WEST, FACE_OPPOSITE);
     }
 
-    public enum Side implements StringRepresentable {
+    public enum Side implements StringIdentifiable {
         NONE("none"),
         SIDE("side"),
         UP("up");

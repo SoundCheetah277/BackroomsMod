@@ -1,21 +1,20 @@
 package org.vfast.backrooms.items;
 
-import net.fabricmc.fabric.api.creativetab.v1.FabricCreativeModeTab;
-import net.minecraft.core.Registry;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.world.item.CreativeModeTab;
+import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
+import net.minecraft.item.ItemGroup;
+import net.minecraft.registry.Registries;
+import net.minecraft.registry.Registry;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 import org.vfast.backrooms.BackroomsMod;
 import org.vfast.backrooms.blocks.BackroomsBlocks;
 
 public class BackroomsItemsGroup {
-    public static final CreativeModeTab MAIN = registerItemGroup(FabricCreativeModeTab.builder()
-            .icon(BackroomsItems.SILK::getDefaultInstance)
-            .title(Component.translatable("itemGroup.backrooms.backrooms"))
-            .displayItems((_, tab) -> {
-                // items
+    public static final ItemGroup MAIN = registerItemGroup(FabricItemGroup.builder()
+            .icon(BackroomsItems.SILK::getDefaultStack)
+            .displayName(Text.translatable("itemGroup.backrooms.backrooms"))
+            .entries((displayContext, tab) -> {                // items
 
                 // Overworld
 
@@ -94,9 +93,9 @@ public class BackroomsItemsGroup {
             })
             .build());
 
-    public static CreativeModeTab registerItemGroup(CreativeModeTab tab) {
-        ResourceKey<CreativeModeTab> key = ResourceKey.create(BuiltInRegistries.CREATIVE_MODE_TAB.key(), Identifier.fromNamespaceAndPath(BackroomsMod.ID, "backrooms"));
-        Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, key, tab);
+    public static ItemGroup registerItemGroup(ItemGroup tab) {
+        RegistryKey<ItemGroup> key = RegistryKey.of(Registries.ITEM_GROUP.key(), Identifier.of(BackroomsMod.ID, "backrooms"));
+        Registry.register(Registries.ITEM_GROUP, key, tab);
         return tab;
     }
 

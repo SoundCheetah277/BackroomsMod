@@ -1,12 +1,11 @@
 package org.vfast.backrooms.items;
 
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.ItemUseAnimation;
-import net.minecraft.world.level.Level;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.ActionResult;
+import net.minecraft.util.Hand;
+import net.minecraft.world.World;
 import org.vfast.backrooms.sounds.BackroomsSounds;
 
 public class CamcorderItem extends Item {
@@ -15,16 +14,16 @@ public class CamcorderItem extends Item {
     }
 
     @Override
-    public InteractionResult use(Level level, Player player, InteractionHand hand) {
-        player.swing(hand);
-        ItemStack stack = player.getItemInHand(hand);
+    public ActionResult use(World level, PlayerEntity player, Hand hand) {
+        player.swingHand(hand);
+        ItemStack stack = player.getStackInHand(hand);
         stack.set(BackroomsComponents.VHS_COMPONENT, !stack.getOrDefault(BackroomsComponents.VHS_COMPONENT, false));
 
 //        if (!level.isClientSide()) {
 //            level.playPlayerSound(BackroomsSounds.CAMERA_CLICK); TODO: FINISH THIS BITCH ASS
 //        }
 
-        return InteractionResult.SUCCESS;
+        return ActionResult.SUCCESS;
     }
 
     @Override

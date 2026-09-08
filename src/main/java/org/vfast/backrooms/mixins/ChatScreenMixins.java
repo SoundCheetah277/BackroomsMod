@@ -1,10 +1,10 @@
 package org.vfast.backrooms.mixins;
 
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.minecraft.client.gui.screens.ChatScreen;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.multiplayer.ClientPacketListener;
-import net.minecraft.network.chat.Component;
+import net.minecraft.client.gui.screen.ChatScreen;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.network.listener.ClientPacketListener;
+import net.minecraft.text.Text;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -13,7 +13,7 @@ import org.vfast.backrooms.world.BackroomsLevels;
 
 @Mixin(ChatScreen.class)
 public abstract class ChatScreenMixins extends Screen {
-    protected ChatScreenMixins(Component title) {
+    protected ChatScreenMixins(Text title) {
         super(title);
     }
 

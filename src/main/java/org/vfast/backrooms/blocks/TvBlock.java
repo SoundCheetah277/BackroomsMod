@@ -1,35 +1,37 @@
 package org.vfast.backrooms.blocks;
 
 import com.mojang.serialization.MapCodec;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
-import net.minecraft.util.RandomSource;
-import net.minecraft.world.item.context.BlockPlaceContext;
-import net.minecraft.world.level.BlockGetter;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.*;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.StateDefinition;
-import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraft.world.level.block.state.properties.BooleanProperty;
-import net.minecraft.world.level.block.state.properties.EnumProperty;
-import net.minecraft.world.level.redstone.Orientation;
-import net.minecraft.world.phys.shapes.CollisionContext;
-import net.minecraft.world.phys.shapes.VoxelShape;
-import org.jspecify.annotations.Nullable;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.BlockWithEntity;
+import net.minecraft.block.ShapeContext;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.enums.Orientation;
+import net.minecraft.item.ItemPlacementContext;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.state.StateManager;
+import net.minecraft.state.property.BooleanProperty;
+import net.minecraft.state.property.EnumProperty;
+import net.minecraft.state.property.Properties;
+import net.minecraft.util.BlockMirror;
+import net.minecraft.util.BlockRotation;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.random.Random;
+import net.minecraft.util.shape.VoxelShape;
+import net.minecraft.world.BlockView;
+import net.minecraft.world.World;
+import org.jetbrains.annotations.Nullable;
 import org.vfast.backrooms.BackroomsMod;
 import org.vfast.backrooms.blocks.entity.TvBlockEntity;
 import org.vfast.backrooms.sounds.BackroomsSounds;
 
-public class TvBlock extends BaseEntityBlock {
-    public static final MapCodec<TvBlock> CODEC = simpleCodec(TvBlock::new);
+public class TvBlock extends BlockWithEntity {
+    public static final MapCodec<TvBlock> CODEC = createCodec(TvBlock::new);
 
-    public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
-    public static final BooleanProperty POWERED = BooleanProperty.create("powered");
+    public static final EnumProperty<Direction> FACING = Properties.HORIZONTAL_FACING;
+    public static final BooleanProperty POWERED = BooleanProperty.of("powered");
 
     public static final int SOUND_DURATION = 112; // in ticks
 
@@ -39,14 +41,14 @@ public class TvBlock extends BaseEntityBlock {
     }
 
     @Override
-    protected void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
+    protected void tick(BlockState state, ServerWorld level, BlockPos pos, Random random) {
         if (state.getValue(POWERED) && !level.hasNeighborSignal(pos)) {
             level.setBlock(pos, state.cycle(POWERED), 2);
         }
     }
 
     @Override
-    public void animateTick(BlockState state, Level level, BlockPos pos, RandomSource random) {
+    public void animateTick(BlockState state, World level, BlockPos pos, Random random) {
         int lastPoweredTick;
         BlockEntity be = level.getBlockEntity(pos);
         if (be instanceof TvBlockEntity tv) {
@@ -58,7 +60,7 @@ public class TvBlock extends BaseEntityBlock {
 
         if (hasPower) {
             if (lastPoweredTick <= 0) {
-                level.playLocalSound(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, BackroomsSounds.TV_SONG.value(), SoundSource.BLOCKS, 0.5f, 1.0f, false);
+                level.playLocalSound(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, BackroomsSounds.TV_SONG.value(), SoundCategory.BLOCKS, 0.5f, 1.0f, false);
             }
             tv.addPoweredTick();
         }
@@ -69,8 +71,8 @@ public class TvBlock extends BaseEntityBlock {
     }
 
     @Override
-    protected void neighborChanged(BlockState state, Level level, BlockPos pos, Block block, @Nullable Orientation orientation, boolean movedByPiston) {
-        if (!level.isClientSide()) {
+    protected void neighborChanged(BlockState state, World level, BlockPos pos, Block block, @Nullable Orientation orientation, boolean movedByPiston) {
+        if (!level.isClient()) {
             boolean isPowered = state.getValue(POWERED);
             if (isPowered) {
                 level.scheduleTick(pos, this, 4);
@@ -79,17 +81,17 @@ public class TvBlock extends BaseEntityBlock {
     }
 
     @Override
-    public @Nullable BlockState getStateForPlacement(BlockPlaceContext context) {
-        return this.defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite()).setValue(POWERED, context.getLevel().hasNeighborSignal(context.getClickedPos()));
+    public @Nullable BlockState getStateForPlacement(ItemPlacementContext context) {
+        return this.defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite()).setValue(POWERED, context.getWorld().hasNeighborSignal(context.getClickedPos()));
     }
 
     @Override
-    protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
-        return Block.box(1, 0, 1, 15, 13, 15);
+    protected VoxelShape getShape(BlockState state, BlockView level, BlockPos pos, ShapeContext context) {
+        return Block.createCuboidShape(1, 0, 1, 15, 13, 15);
     }
 
     @Override
-    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+    protected void createBlockStateDefinition(StateManager.Builder<Block, BlockState> builder) {
         builder.add(FACING, POWERED);
     }
 
@@ -98,11 +100,11 @@ public class TvBlock extends BaseEntityBlock {
         return CODEC;
     }
 
-    protected BlockState rotate(final BlockState state, final Rotation rotation) {
+    protected BlockState rotate(final BlockState state, final BlockRotation rotation) {
         return state.setValue(FACING, rotation.rotate(state.getValue(FACING)));
     }
 
-    protected BlockState mirror(final BlockState state, final Mirror mirror) {
+    protected BlockState mirror(final BlockState state, final BlockMirror mirror) {
         return state.rotate(mirror.getRotation(state.getValue(FACING)));
     }
 

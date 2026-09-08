@@ -1,8 +1,8 @@
 package org.vfast.backrooms.mixins;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.components.PlayerTabOverlay;
-import net.minecraft.client.multiplayer.PlayerInfo;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.hud.PlayerListHud;
+import net.minecraft.client.realms.dto.PlayerInfo;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -13,18 +13,18 @@ import org.vfast.backrooms.world.BackroomsLevels;
 
 import java.util.List;
 
-@Mixin(PlayerTabOverlay.class)
+@Mixin(PlayerListHud.class)
 public abstract class PlayerTabOverlayMixins {
     @Shadow
     @Final
-    private Minecraft minecraft;
+    private MinecraftClient minecraft;
 
     @Shadow
     public abstract void setVisible(boolean visible);
 
     @Inject(method = "getPlayerInfos", at = @At("RETURN"), cancellable = true)
     private void getNearbyPlayerInfos(CallbackInfoReturnable<List<PlayerInfo>> cir) {
-        boolean isInBackrooms = BackroomsLevels.isBackrooms(this.minecraft.level.dimension());
+        boolean isInBackrooms = BackroomsLevels.isBackrooms(this.minecraft.world.dimension());
         this.setVisible(!isInBackrooms);
 
         if (isInBackrooms) {

@@ -1,23 +1,20 @@
 package org.vfast.backrooms.blocks;
 
 import com.mojang.serialization.MapCodec;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.world.item.context.BlockPlaceContext;
-import net.minecraft.world.level.BlockGetter;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.HorizontalDirectionalBlock;
-import net.minecraft.world.level.block.state.BlockBehaviour;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.StateDefinition;
-import net.minecraft.world.phys.shapes.CollisionContext;
-import net.minecraft.world.phys.shapes.Shapes;
-import net.minecraft.world.phys.shapes.VoxelShape;
+import net.minecraft.block.*;
+import net.minecraft.item.ItemPlacementContext;
+import net.minecraft.state.StateManager;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.shape.VoxelShape;
+import net.minecraft.util.shape.VoxelShapes;
 
-public class WoolyChairBlock extends HorizontalDirectionalBlock {
-    public static final MapCodec<WoolyChairBlock> CODEC = simpleCodec(WoolyChairBlock::new);
+import javax.swing.text.html.BlockView;
 
-    public WoolyChairBlock(BlockBehaviour.Properties properties) {
+public class WoolyChairBlock extends HorizontalFacingBlock {
+    public static final MapCodec<WoolyChairBlock> CODEC = createCodec(WoolyChairBlock::new);
+
+    public WoolyChairBlock(AbstractBlock.Settings properties) {
         super(properties);
         registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH));
     }
@@ -28,61 +25,61 @@ public class WoolyChairBlock extends HorizontalDirectionalBlock {
     }
 
     @Override
-    public BlockState getStateForPlacement(BlockPlaceContext context) {
-        return defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());
+    public BlockState getStateForPlacement(ItemPlacementContext context) {
+        return getDefaultState().setValue(FACING, context.getHorizontalPlayerFacing().getOpposite());
     }
 
     @Override
-    public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+    public VoxelShape getShape(BlockState state, BlockView level, BlockPos pos, ShapeContext context) {
         Direction currentDirection = state.getValue(FACING);
         return WoolyChairShapes.fromDirection(currentDirection).shape;
     }
 
     @Override
-    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+    protected void createBlockStateDefinition(StateManager.Builder<Block, BlockState> builder) {
         builder.add(FACING);
     }
 
     enum WoolyChairShapes {
-        NORTH(Shapes.or(
-                Block.box(3, 4, 1, 13, 5, 11),
-                Block.box(1, 0, 0, 3, 7, 1),
-                Block.box(13, 0, 0, 15, 7, 1),
-                Block.box(1, 0, 12, 3, 5, 13),
-                Block.box(13, 0, 12, 15, 5, 13),
-                Block.box(0, 0, 0, 4, 10, 16),
-                Block.box(12, 0, 0, 16, 10, 16),
-                Block.box(0, 0, 13, 16, 16, 16))),
+        NORTH(VoxelShapes.union(
+                Block.createCuboidShape(3, 4, 1, 13, 5, 11),
+                Block.createCuboidShape(1, 0, 0, 3, 7, 1),
+                Block.createCuboidShape(13, 0, 0, 15, 7, 1),
+                Block.createCuboidShape(1, 0, 12, 3, 5, 13),
+                Block.createCuboidShape(13, 0, 12, 15, 5, 13),
+                Block.createCuboidShape(0, 0, 0, 4, 10, 16),
+                Block.createCuboidShape(12, 0, 0, 16, 10, 16),
+                Block.createCuboidShape(0, 0, 13, 16, 16, 16))),
 
-        SOUTH(Shapes.or(
-                Block.box(3, 4, 5, 13, 5, 15),
-                Block.box(1, 0, 15, 3, 7, 16),
-                Block.box(13, 0, 15, 15, 7, 16),
-                Block.box(1, 0, 3, 3, 5, 4),
-                Block.box(13, 0, 3, 15, 5, 4),
-                Block.box(12, 0, 0, 16, 10, 16),
-                Block.box(0, 0, 0, 4, 10, 16),
-                Block.box(0, 0, 0, 16, 16, 3))),
+        SOUTH(VoxelShapes.union(
+                Block.createCuboidShape(3, 4, 5, 13, 5, 15),
+                Block.createCuboidShape(1, 0, 15, 3, 7, 16),
+                Block.createCuboidShape(13, 0, 15, 15, 7, 16),
+                Block.createCuboidShape(1, 0, 3, 3, 5, 4),
+                Block.createCuboidShape(13, 0, 3, 15, 5, 4),
+                Block.createCuboidShape(12, 0, 0, 16, 10, 16),
+                Block.createCuboidShape(0, 0, 0, 4, 10, 16),
+                Block.createCuboidShape(0, 0, 0, 16, 16, 3))),
 
-        WEST(Shapes.or(
-                Block.box(1, 4, 3, 11, 5, 13),
-                Block.box(0, 0, 13, 1, 7, 15),
-                Block.box(0, 0, 1, 1, 7, 3),
-                Block.box(12, 0, 13, 13, 5, 15),
-                Block.box(12, 0, 1, 13, 5, 3),
-                Block.box(0, 0, 12, 16, 10, 16),
-                Block.box(0, 0, 0, 16, 10, 4),
-                Block.box(13, 0, 0, 16, 16, 16))),
+        WEST(VoxelShapes.union(
+                Block.createCuboidShape(1, 4, 3, 11, 5, 13),
+                Block.createCuboidShape(0, 0, 13, 1, 7, 15),
+                Block.createCuboidShape(0, 0, 1, 1, 7, 3),
+                Block.createCuboidShape(12, 0, 13, 13, 5, 15),
+                Block.createCuboidShape(12, 0, 1, 13, 5, 3),
+                Block.createCuboidShape(0, 0, 12, 16, 10, 16),
+                Block.createCuboidShape(0, 0, 0, 16, 10, 4),
+                Block.createCuboidShape(13, 0, 0, 16, 16, 16))),
 
-        EAST(Shapes.or(
-                Block.box(5, 4, 3, 15, 5, 13),
-                Block.box(15, 0, 1, 16, 7, 3),
-                Block.box(15, 0, 13, 16, 7, 15),
-                Block.box(3, 0, 1, 4, 5, 3),
-                Block.box(3, 0, 13, 4, 5, 15),
-                Block.box(0, 0, 0, 16, 10, 4),
-                Block.box(0, 0, 12, 16, 10, 16),
-                Block.box(0, 0, 0, 3, 16, 16)));
+        EAST(VoxelShapes.union(
+                Block.createCuboidShape(5, 4, 3, 15, 5, 13),
+                Block.createCuboidShape(15, 0, 1, 16, 7, 3),
+                Block.createCuboidShape(15, 0, 13, 16, 7, 15),
+                Block.createCuboidShape(3, 0, 1, 4, 5, 3),
+                Block.createCuboidShape(3, 0, 13, 4, 5, 15),
+                Block.createCuboidShape(0, 0, 0, 16, 10, 4),
+                Block.createCuboidShape(0, 0, 12, 16, 10, 16),
+                Block.createCuboidShape(0, 0, 0, 3, 16, 16)));
 
         private final VoxelShape shape;
 

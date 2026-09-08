@@ -1,14 +1,14 @@
 package org.vfast.backrooms.client.gui;
 
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.multiplayer.LevelLoadTracker;
-import net.minecraft.network.chat.Component;
+
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.text.Text;
 
 public class InvisiScreen extends Screen {
     private LevelLoadTracker loadTracker;
 
     public InvisiScreen(LevelLoadTracker levelLoadTracker) {
-        super(Component.empty());
+        super(Text.empty());
         this.loadTracker = levelLoadTracker;
     }
 

@@ -2,15 +2,15 @@ package org.vfast.backrooms.network;
 
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.minecraft.ChatFormatting;
-import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.ChatType;
-import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.Vec3;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.network.message.MessageType;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Box;
+import net.minecraft.util.math.Vec3d;
 import org.vfast.backrooms.BackroomsMod;
 import org.vfast.backrooms.blocks.interfaces.TextBlockEntity;
 import org.vfast.backrooms.world.BackroomsGameRules;
@@ -33,7 +33,7 @@ public class BackroomsNetworking {
     private static void registerReceivers() {
         // update text sign
         ServerPlayNetworking.registerGlobalReceiver(UpdateTextSignPacket.TYPE, (payload, context) -> {
-            ServerLevel level = context.player().level();
+            ServerWorld level = context.player().level();
             BlockEntity be = level.getBlockEntity(payload.pos());
 
             if (be instanceof TextBlockEntity) {
@@ -46,24 +46,24 @@ public class BackroomsNetworking {
         // limited chat
         ServerPlayNetworking.registerGlobalReceiver(LimitedChatPacket.TYPE, (payload, context) -> {
             if (!context.player().level().getGameRules().get(BackroomsGameRules.LIMITED_CHATTING)) {
-                context.player().connection.sendDisguisedChatMessage(Component.literal(payload.content()), ChatType.bind(ChatType.CHAT, context.player()));
+                context.player().connection.sendDisguisedChatMessage(Text.literal(payload.content()), MessageType.bind(MessageType.CHAT, context.player()));
                 return;
             }
 
             BlockPos senderPos = context.player().blockPosition();
             float radius = 30.0f;
 
-            List<ServerPlayer> receivers = context.player().level().getEntitiesOfClass(
-                    ServerPlayer.class,
-                    new AABB(senderPos).inflate(radius),
-                    player -> player.distanceToSqr(Vec3.atCenterOf(senderPos)) <= radius * radius
+            List<ServerPlayerEntity> receivers = context.player().level().getEntitiesOfClass(
+                    ServerPlayerEntity.class,
+                    new Box(senderPos).inflate(radius),
+                    player -> player.distanceToSqr(Vec3d.atCenterOf(senderPos)) <= radius * radius
             );
 
             if (receivers.size() == 1) {
-                receivers.getFirst().sendSystemMessage(Component.translatable("message.backrooms.chat_alone").withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
+                receivers.getFirst().sendSystemMessage(Text.translatable("message.backrooms.chat_alone").withStyle(Formatting.DARK_GRAY, Formatting.ITALIC));
             } else {
-                for (ServerPlayer receiver : receivers) {
-                    receiver.connection.sendDisguisedChatMessage(Component.literal(payload.content()), ChatType.bind(ChatType.CHAT, context.player()));
+                for (ServerPlayerEntity receiver : receivers) {
+                    receiver.connection.sendDisguisedChatMessage(Text.literal(payload.content()), MessageType.bind(MessageType.CHAT, context.player()));
                 }
             }
         });

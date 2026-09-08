@@ -1,11 +1,10 @@
 package org.vfast.backrooms.items;
 
-import net.minecraft.core.Registry;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.world.item.Item;
+import net.minecraft.item.Item;
+import net.minecraft.registry.Registries;
+import net.minecraft.registry.Registry;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.util.Identifier;
 import org.vfast.backrooms.BackroomsMod;
 
 import java.util.function.Function;
@@ -19,9 +18,9 @@ public class BackroomsItems {
     // Can be used for new 1.19.3+ creative inventory system
 
     private static <T extends Item> T registerItem(String name, Function<Item.Properties, T> itemConstructor, Item.Properties properties) {
-        ResourceKey<Item> key = ResourceKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath(BackroomsMod.ID, name));
+        RegistryKey<Item> key = RegistryKey.create(Registries.ITEM, Identifier.of(BackroomsMod.ID, name));
         T item = itemConstructor.apply(properties.setId(key));
-        Registry.register(BuiltInRegistries.ITEM, Identifier.fromNamespaceAndPath(BackroomsMod.ID, name), item);
+        Registry.register(Registries.ITEM, Identifier.of(BackroomsMod.ID, name), item);
         return item;
     }
 

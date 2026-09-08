@@ -1,9 +1,7 @@
 package org.vfast.backrooms.mixins;
 
-import net.minecraft.client.gui.components.DebugScreenOverlay;
-import net.minecraft.client.gui.components.debug.DebugScreenEntries;
-import net.minecraft.client.gui.components.debug.DebugScreenEntry;
-import net.minecraft.resources.Identifier;
+import net.minecraft.client.gui.hud.DebugHud;
+import net.minecraft.util.Identifier;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -11,7 +9,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 
 import java.util.List;
 
-@Mixin(DebugScreenOverlay.class)
+@Mixin(DebugHud.class)
 public class DebugScreenOverlayMixins {
     @Unique
     private static final List<Identifier> FORBIDDEN_ENTRIES;

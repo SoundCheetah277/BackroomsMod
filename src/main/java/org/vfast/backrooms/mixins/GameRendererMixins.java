@@ -1,13 +1,12 @@
 package org.vfast.backrooms.mixins;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.client.renderer.ScreenEffectRenderer;
-import net.minecraft.resources.Identifier;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.waypoints.TrackedWaypoint;
-import org.jspecify.annotations.Nullable;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.hud.InGameOverlayRenderer;
+import net.minecraft.client.render.GameRenderer;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.Hand;
+import net.minecraft.util.Identifier;
+import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -22,15 +21,15 @@ import org.vfast.backrooms.items.BackroomsComponents;
 @Mixin(GameRenderer.class)
 public abstract class GameRendererMixins implements AutoCloseable, TrackedWaypoint.Projector, GameRendererGetter {
     @Unique
-    private static final Identifier VHS_SHADER = Identifier.fromNamespaceAndPath(BackroomsMod.ID, "vhs");
+    private static final Identifier VHS_SHADER = Identifier.of(BackroomsMod.ID, "vhs");
 
     @Shadow
     @Final
-    private ScreenEffectRenderer screenEffectRenderer;
+    private InGameOverlayRenderer screenEffectRenderer;
 
     @Shadow
     @Final
-    private Minecraft minecraft;
+    private MinecraftClient minecraft;
 
     @Shadow
     protected abstract void setPostEffect(Identifier id);
@@ -42,14 +41,14 @@ public abstract class GameRendererMixins implements AutoCloseable, TrackedWaypoi
     private @Nullable Identifier postEffectId;
 
     @Override
-    public ScreenEffectRenderer getScreenEffectRenderer() {
+    public InGameOverlayRenderer getScreenEffectRenderer() {
         return this.screenEffectRenderer;
     }
 
     @Inject(method = "tick", at = @At("TAIL"))
     private void tickVhs(CallbackInfo ci) {
-        InteractionHand usedHand = this.minecraft.player.getUsedItemHand();
-        ItemStack stack = this.minecraft.player.getItemInHand(usedHand);
+        Hand usedHand = this.minecraft.player.getActiveHand();
+        ItemStack stack = this.minecraft.player.getStackInHand(usedHand);
         if (stack.getOrDefault(BackroomsComponents.VHS_COMPONENT, false)) {
             this.setPostEffect(VHS_SHADER);
         } else if (this.postEffectId == VHS_SHADER) {

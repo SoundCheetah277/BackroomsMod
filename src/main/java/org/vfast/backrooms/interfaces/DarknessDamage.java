@@ -1,7 +1,8 @@
 package org.vfast.backrooms.interfaces;
 
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.level.Level;
+
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.world.World;
 
 public interface DarknessDamage {
     int TICK_PREVENT = 30;
@@ -9,8 +10,8 @@ public interface DarknessDamage {
     int ATTACK_TICK_RATE = 25;
 
     default int getBlockLight(LivingEntity entity) {
-        Level level = entity.level();
-        return level.getLightEngine().getRawBrightness(entity.blockPosition(), 999); // remove skylight
+        World level = entity.getWorld();
+        return level.getLightingProvider().getLight(entity.getBlockPos(), 999); // remove skylight
     }
 
     default void attackEntity() {

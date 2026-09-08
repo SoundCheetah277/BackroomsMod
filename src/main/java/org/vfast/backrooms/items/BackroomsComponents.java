@@ -1,17 +1,17 @@
 package org.vfast.backrooms.items;
 
 import com.mojang.serialization.Codec;
-import net.minecraft.core.Registry;
-import net.minecraft.core.component.DataComponentType;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.component.ComponentType;
+import net.minecraft.registry.Registries;
+import net.minecraft.registry.Registry;
+import net.minecraft.util.Identifier;
 import org.vfast.backrooms.BackroomsMod;
 
 public class BackroomsComponents {
-    public static final DataComponentType<Boolean> VHS_COMPONENT = Registry.register(
-            BuiltInRegistries.DATA_COMPONENT_TYPE,
-            Identifier.fromNamespaceAndPath(BackroomsMod.ID, "vhs_effect"),
-            DataComponentType.<Boolean>builder().persistent(Codec.BOOL).build()
+    public static final ComponentType<Boolean> VHS_COMPONENT = Registry.register(
+            Registries.DATA_COMPONENT_TYPE,
+            Identifier.of(BackroomsMod.ID, "vhs_effect"),
+            ComponentType.<Boolean>builder().codec(Codec.BOOL).build()
     );
 
     public static void registerComponents() {

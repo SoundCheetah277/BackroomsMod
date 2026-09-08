@@ -1,16 +1,14 @@
 package org.vfast.backrooms.blocks.entity;
 
 import com.mojang.serialization.Codec;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.ClientGamePacketListener;
-import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.storage.ValueInput;
-import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.network.listener.ClientPlayPacketListener;
+import net.minecraft.network.packet.Packet;
+import net.minecraft.network.packet.s2c.play.BlockEntityUpdateS2CPacket;
+import net.minecraft.registry.RegistryWrapper;
+import net.minecraft.util.math.BlockPos;
 import org.vfast.backrooms.blocks.TvBlock;
 
 public class TvBlockEntity extends BlockEntity {
@@ -44,7 +42,7 @@ public class TvBlockEntity extends BlockEntity {
     private void markUpdated() {
         this.setChanged();
         assert this.level != null;
-        this.level.sendBlockUpdated(this.getBlockPos(), this.getBlockState(), this.getBlockState(), 3);
+        this.level.sendBlockUpdated(this.getPos(), this.getCachedState(), this.getCachedState(), 3);
     }
 
     @Override
@@ -60,12 +58,12 @@ public class TvBlockEntity extends BlockEntity {
     }
 
     @Override
-    public CompoundTag getUpdateTag(HolderLookup.Provider registryLookup) {
-        return saveWithoutMetadata(registryLookup);
+    public NbtCompound getUpdateTag(RegistryWrapper.WrapperLookup registryLookup) {
+        return createNbt(registryLookup);
     }
 
     @Override
-    public Packet<ClientGamePacketListener> getUpdatePacket() {
-        return ClientboundBlockEntityDataPacket.create(this);
+    public Packet<ClientPlayPacketListener> getUpdatePacket() {
+        return BlockEntityUpdateS2CPacket.create(this);
     }
 }

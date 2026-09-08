@@ -1,7 +1,7 @@
 package org.vfast.backrooms.mixins;
 
 import net.minecraft.client.color.block.BlockColors;
-import net.minecraft.client.color.block.BlockTintSources;
+import net.minecraft.text.BlockNbtDataSource;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -15,7 +15,7 @@ public class BlockColorsMixins {
     @Inject(method = "createDefault", at = @At(value = "RETURN"), cancellable = true)
     private static void addBlockColors(CallbackInfoReturnable<BlockColors> cir) {
         BlockColors colors = cir.getReturnValue();
-        colors.register(List.of(BlockTintSources.grassBlock()), BackroomsBlocks.FAKE_BLOCK);
+        colors.register(List.of(BlockNbtDataSource.grassBlock()), BackroomsBlocks.FAKE_BLOCK);
 
         cir.setReturnValue(colors);
     }

@@ -1,18 +1,18 @@
 package org.vfast.backrooms.world;
 
-import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.world.level.Level;
+import net.minecraft.registry.Registries;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.util.Identifier;
+import net.minecraft.world.World;
 import org.vfast.backrooms.BackroomsMod;
 
 import java.util.List;
 
 public class BackroomsLevels {
-    private static final List<ResourceKey<Level>> BACKROOM_LEVELS;
-    public static final ResourceKey<Level> LEVEL_0 = ResourceKey.create(Registries.DIMENSION, Identifier.fromNamespaceAndPath(BackroomsMod.ID, "level_0"));
+    private static final List<RegistryKey<World>> BACKROOM_LEVELS;
+    public static final RegistryKey<World> LEVEL_0 = RegistryKey.of(Registries.DIMENSION, Identifier.of(BackroomsMod.ID, "level_0"));
 
-    public static boolean isBackrooms(ResourceKey<Level> level) {
+    public static boolean isBackrooms(RegistryKey<World> level) {
         return BACKROOM_LEVELS.contains(level);
     }
 

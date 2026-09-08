@@ -1,11 +1,11 @@
 package org.vfast.backrooms.mixins;
 
 import com.mojang.authlib.GameProfile;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.player.AbstractClientPlayer;
-import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.core.BlockPos;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.AbstractClientPlayerEntity;
+import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.client.world.ClientWorld;
+import net.minecraft.util.math.BlockPos;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -19,21 +19,21 @@ import org.vfast.backrooms.world.BackroomsLevels;
 
 import java.util.List;
 
-@Mixin(LocalPlayer.class)
-public abstract class LocalPlayerMixins extends AbstractClientPlayer implements GuiOpener {
+@Mixin(ClientPlayerEntity.class)
+public abstract class LocalPlayerMixins extends AbstractClientPlayerEntity implements GuiOpener {
     @Shadow
     @Final
-    protected Minecraft minecraft;
+    protected MinecraftClient minecraft;
 
-    private LocalPlayerMixins(ClientLevel level, GameProfile gameProfile) {
+    private LocalPlayerMixins(ClientWorld level, GameProfile gameProfile) {
         super(level, gameProfile);
     }
 
     @Inject(method = "canStartSprinting", at = @At(value = "HEAD"), cancellable = true)
     private void forceStopSprint(CallbackInfoReturnable<Boolean> cir) {
-        assert this.minecraft.level != null;
+        assert this.minecraft.world != null;
 
-        if (this.minecraft.level.dimension() == BackroomsLevels.LEVEL_0 && !this.getAbilities().invulnerable) {
+        if (this.minecraft.world.dimension() == BackroomsLevels.LEVEL_0 && !this.getAbilities().invulnerable) {
             this.setSprinting(false);
             cir.setReturnValue(false);
         }

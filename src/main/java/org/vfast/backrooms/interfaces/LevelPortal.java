@@ -1,32 +1,32 @@
 package org.vfast.backrooms.interfaces;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.client.renderer.ScreenEffectRenderer;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundSource;
-import net.minecraft.util.RandomSource;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.effect.MobEffects;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.entity.monster.Monster;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.entity.projectile.Projectile;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.HorizontalDirectionalBlock;
-import net.minecraft.world.level.block.Portal;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.storage.LevelData;
-import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.Vec3;
+import com.llamalad7.mixinextras.lib.antlr.runtime.atn.Transition;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.HorizontalFacingBlock;
+import net.minecraft.block.Portal;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.hud.InGameOverlayRenderer;
+import net.minecraft.client.render.GameRenderer;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.ItemEntity;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.entity.mob.Monster;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.projectile.ProjectileEntity;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Box;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.random.Random;
+import net.minecraft.world.World;
+import net.minecraft.world.WorldProperties;
 import org.jetbrains.annotations.Nullable;
 import org.vfast.backrooms.BackroomsMod;
 import org.vfast.backrooms.attachments.BackroomsAttachments;
@@ -44,43 +44,43 @@ import java.util.Optional;
 public interface LevelPortal extends Portal {
     Map<LivingEntity, Float> transferEntitySpeed = new HashMap<>();
 
-    default void entityInside(BlockState state, Level level, BlockPos pos, Entity entity, EntityBounding entityBounding) {
+    default void entityInside(BlockState state, World level, BlockPos pos, Entity entity, EntityBounding entityBounding) {
         boolean suffocating = this.shouldSuffocate(entity, pos);
-        if (suffocating && level.isClientSide()) {
+        if (suffocating && level.isClient()) {
             this.simulateSuffocation(this.suffocatingBlock(state));
-        } else if (!suffocating && level.isClientSide()) {
+        } else if (!suffocating && level.isClient()) {
             this.simulateSuffocation(null);
         }
 
-        boolean isPlayerInside = (entity instanceof Player && this.fullyInBounding(entity, pos, entityBounding));
-        boolean isEntityInside = (!(entity instanceof Player) && this.lazyBounding(entity, pos));
+        boolean isPlayerInside = (entity instanceof PlayerEntity && this.fullyInBounding(entity, pos, entityBounding));
+        boolean isEntityInside = (!(entity instanceof PlayerEntity) && this.lazyBounding(entity, pos));
 
-        if (entity.canUsePortal(false) && !entity.isOnPortalCooldown() && (isPlayerInside || isEntityInside)) {
-            entity.setAsInsidePortal(this, pos);
+        if (entity.canUsePortals(false) && !entity.hasPortalCooldown() && (isPlayerInside || isEntityInside)) {
+            entity.tryUsePortal(this, pos);
 
-            long seed = RandomSource.create().nextLong();
-            if (!level.isClientSide()) {
-                boolean isSmallEntity = entity instanceof ItemEntity || entity instanceof Projectile;
+            long seed = Random.create().nextLong();
+            if (!level.isClient()) {
+                boolean isSmallEntity = entity instanceof ItemEntity || entity instanceof ProjectileEntity;
                 if (!isSmallEntity) {
                     boolean isHostile = entity instanceof Monster;
-                    SoundSource entitySource = isHostile ? SoundSource.HOSTILE : SoundSource.NEUTRAL;
+                    SoundCategory entitySource = isHostile ? SoundCategory.HOSTILE : SoundCategory.NEUTRAL;
 
-                    level.playSeededSound(entity, entity.getX(), entity.getY(), entity.getZ(), BackroomsSounds.NOCLIP, isPlayerInside ? SoundSource.PLAYERS : entitySource, 1.0f, 1.0f, seed);
+                    level.playSound(entity, entity.getX(), entity.getY(), entity.getZ(), BackroomsSounds.NOCLIP, isPlayerInside ? SoundCategory.PLAYERS : entitySource, 1.0f, 1.0f, seed);
                 } else {
-                    level.playSeededSound(entity, entity.getX(), entity.getY(), entity.getZ(), BackroomsSounds.NOCLIP_SMALL, SoundSource.AMBIENT, 1.0f, 1.0f, seed);
+                    level.playSound(entity, entity.getX(), entity.getY(), entity.getZ(), BackroomsSounds.NOCLIP_SMALL, SoundCategory.AMBIENT, 1.0f, 1.0f, seed);
                 }
             }
         }
     }
 
-    default void entityInside(BlockState state, Level level, BlockPos pos, Entity entity) {
+    default void entityInside(BlockState state, World level, BlockPos pos, Entity entity) {
         this.entityInside(state, level, pos, entity, EntityBounding.BOTH);
     }
 
     default void simulateSuffocation(@Nullable BlockState blockState) {
-        Minecraft minecraft = Minecraft.getInstance();
+        MinecraftClient minecraft = MinecraftClient.getInstance();
         GameRenderer renderer = minecraft.gameRenderer;
-        ScreenEffectRenderer screenRenderer = ((GameRendererGetter) renderer).getScreenEffectRenderer();
+        InGameOverlayRenderer screenRenderer = ((GameRendererGetter) renderer).getScreenEffectRenderer();
         ((Suffocator) screenRenderer).setSuffocating(blockState);
     }
 
@@ -88,19 +88,19 @@ public interface LevelPortal extends Portal {
         double x = blockPos.getX() + 0.5d;
         double y = blockPos.getY() + 0.5d;
         double z = blockPos.getZ() + 0.5d;
-        Vec3 pos = new Vec3(x, y, z);
-        Vec3 lb = pos.subtract(0.5d, 0.5d, 0.5d); // left bottom
-        Vec3 ru = pos.add(0.5d, 0.5d, 0.5d); // right up
+        Vec3d pos = new Vec3d(x, y, z);
+        Vec3d lb = pos.subtract(0.5d, 0.5d, 0.5d); // left bottom
+        Vec3d ru = pos.add(0.5d, 0.5d, 0.5d); // right up
 
-        AABB bounding = entity.getBoundingBox();
-        Vec3 minFeetBounding = bounding.getMinPosition();
-        Vec3 maxFeetBounding = bounding.getMaxPosition().subtract(0.0d, 1.0d, 0.0d);
+        Box bounding = entity.getBoundingBox();
+        Vec3d minFeetBounding = bounding.getMinPos();
+        Vec3d maxFeetBounding = bounding.getMaxPos().subtract(0.0d, 1.0d, 0.0d);
 
         boolean minFeetThrough = this.passingThrough(minFeetBounding, lb, ru);
         boolean maxFeetThrough = this.passingThrough(maxFeetBounding, lb, ru);
 
-        Vec3 minHeadBounding = bounding.getMinPosition().add(0.0d, 1.0d, 0.0d);
-        Vec3 maxHeadBounding = bounding.getMaxPosition();
+        Vec3d minHeadBounding = bounding.getMinPos().add(0.0d, 1.0d, 0.0d);
+        Vec3d maxHeadBounding = bounding.getMaxPos();
 
         boolean minHeadThrough = this.passingThrough(minHeadBounding, lb, ru);
         boolean maxHeadThrough = this.passingThrough(maxHeadBounding, lb, ru);
@@ -123,18 +123,18 @@ public interface LevelPortal extends Portal {
         double x = blockPos.getX() + 0.5d;
         double y = blockPos.getY() + 0.5d;
         double z = blockPos.getZ() + 0.5d;
-        Vec3 pos = new Vec3(x, y, z);
-        Vec3 lb = pos.subtract(0.5d, 0.5d, 0.5d); // left bottom
-        Vec3 ru = pos.add(0.5d, 0.5d, 0.5d); // right up
+        Vec3d pos = new Vec3d(x, y, z);
+        Vec3d lb = pos.subtract(0.5d, 0.5d, 0.5d); // left bottom
+        Vec3d ru = pos.add(0.5d, 0.5d, 0.5d); // right up
 
-        AABB bounding = entity.getBoundingBox();
-        Vec3 entityPos = bounding.getCenter();
+        Box bounding = entity.getBoundingBox();
+        Vec3d entityPos = bounding.getCenter();
 
         return this.touchingPosition(entityPos, lb, ru);
     }
 
     default boolean shouldSuffocate(Entity entity, BlockPos blockPos) {
-        if (!(entity instanceof Player)) {
+        if (!(entity instanceof PlayerEntity)) {
             return false;
         }
 
@@ -143,19 +143,19 @@ public interface LevelPortal extends Portal {
         double x = blockPos.getX() + 0.5d;
         double y = blockPos.getY() + 0.5d;
         double z = blockPos.getZ() + 0.5d;
-        Vec3 pos = new Vec3(x, y, z);
-        Vec3 lb = pos.subtract(0.5d, 0.5d, 0.5d); // left bottom
-        Vec3 ru = pos.add(0.5d, 0.5d, 0.5d); // right up
+        Vec3d pos = new Vec3d(x, y, z);
+        Vec3d lb = pos.subtract(0.5d, 0.5d, 0.5d); // left bottom
+        Vec3d ru = pos.add(0.5d, 0.5d, 0.5d); // right up
 
-        Vec3 centerHead = entity.getEyePosition();
+        Vec3d centerHead = entity.getEyePos();
         return this.passingThrough(centerHead, lb, ru, headDiameter / 2);
     }
 
-    default boolean passingThrough(Vec3 currentPos, Vec3 pos1, Vec3 pos2) {
+    default boolean passingThrough(Vec3d currentPos, Vec3d pos1, Vec3d pos2) {
         return this.passingThrough(currentPos, pos1, pos2, 0.0d);
     }
 
-    default boolean passingThrough(Vec3 currentPos, Vec3 pos1, Vec3 pos2, double tolerance) {
+    default boolean passingThrough(Vec3d currentPos, Vec3d pos1, Vec3d pos2, double tolerance) {
         double minX = pos1.x - tolerance;
         double maxX = pos2.x + tolerance;
         double minY = pos1.y - tolerance;
@@ -166,7 +166,7 @@ public interface LevelPortal extends Portal {
         return (currentPos.x >= minX && currentPos.x <= maxX) && (currentPos.y >= minY && currentPos.y <= maxY) && (currentPos.z >= minZ && currentPos.z <= maxZ);
     }
 
-    default boolean touchingPosition(Vec3 currentPos, Vec3 pos1, Vec3 pos2) {
+    default boolean touchingPosition(Vec3d currentPos, Vec3d pos1, Vec3d pos2) {
         double minX = pos1.x;
         double maxX = pos2.x;
         double minY = pos1.y;
@@ -181,53 +181,53 @@ public interface LevelPortal extends Portal {
         assert entity.isAlive();
 
         if (ongoing) {
-            float currentSpeed = entity.getSpeed();
+            float currentSpeed = entity.getMovementSpeed();
             transferEntitySpeed.put(entity, currentSpeed);
 
             entity.setAttached(BackroomsAttachments.LOADING_WORLD, true);
-            entity.setSpeed(0);
+            entity.setMovementSpeed(0);
             entity.setInvulnerable(true);
         } else {
             float transferredSpeed = transferEntitySpeed.get(entity);
             transferEntitySpeed.remove(entity);
 
             entity.setAttached(BackroomsAttachments.LOADING_WORLD, false);
-            entity.setSpeed(transferredSpeed);
+            entity.setMovementSpeed(transferredSpeed);
             entity.setInvulnerable(false);
         }
     }
 
-    static ServerPlayer.RespawnConfig getSpawnConfig(BlockPos position, float yaw, float pitch, ResourceKey<Level> level) {
-        return new ServerPlayer.RespawnConfig(LevelData.RespawnData.of(level, position, yaw, pitch), true);
+    static ServerPlayerEntity.RespawnConfig getSpawnConfig(BlockPos position, float yaw, float pitch, RegistryKey<World> level) {
+        return new ServerPlayerEntity(WorldProperties.RespawnData.of(level, position, yaw, pitch), true);
     }
 
     static void affectPlayer(Entity entity) {
-        ServerLevel level = (ServerLevel) entity.level(); // destination
+        ServerWorld level = (ServerWorld) entity.getWorld(); // destination
         boolean fullyImmersed = level.getGameRules().get(BackroomsGameRules.FULL_IMMERSION);
 
-        long seed = RandomSource.create().nextLong();
-        level.playSeededSound(null, entity, BackroomsSounds.NOCLIP, SoundSource.PLAYERS, 1.0f, 1.0f, seed);
+        long seed = Random.create().nextLong();
+        level.playSound(null, entity, BackroomsSounds.NOCLIP, SoundCategory.PLAYERS, 1.0f, 1.0f, seed);
         if (entity instanceof LivingEntity && fullyImmersed) {
-            MobEffectInstance mobEffect = new MobEffectInstance(MobEffects.DARKNESS, 130, 0, false, false, false);
+            StatusEffectInstance mobEffect = new StatusEffectInstance(StatusEffects.DARKNESS, 130, 0, false, false, false);
             ((LivingEntity) entity).addEffect(mobEffect);
         }
 
-        if (entity instanceof ServerPlayer && fullyImmersed) {
+        if (entity instanceof ServerPlayerEntity && fullyImmersed) {
             entity.setAttached(BackroomsAttachments.LOADING_WORLD, false);
             if (level.dimension() == BackroomsLevels.LEVEL_0) {
-                PlayerSnapshot.saveAndClear((ServerPlayer) entity);
+                PlayerSnapshot.saveAndClear((ServerPlayerEntity) entity);
 
-                if (entity instanceof ServerPlayer) {
-                    ServerPlayer.RespawnConfig respawn = LevelPortal.getSpawnConfig(entity.blockPosition(), entity.getXRot(), entity.getYRot(), BackroomsLevels.LEVEL_0);
-                    ((ServerPlayer) entity).setRespawnPosition(respawn, false);
+                if (entity instanceof ServerPlayerEntity) {
+                    ServerPlayerEntity.RespawnConfig respawn = LevelPortal.getSpawnConfig(entity.getBlockPos(), entity.getPitch(), entity.getYaw(), BackroomsLevels.LEVEL_0);
+                    ((ServerPlayerEntity) entity).setRespawnPosition(respawn, false);
                 }
             } else {
-                PlayerSnapshot.restore((ServerPlayer) entity);
+                PlayerSnapshot.restore((ServerPlayerEntity) entity);
             }
         }
     }
 
-    default BackroomsPortalBlock.SpawnLocation selectStartPosition(BlockPos origin, ServerLevel level, @Nullable BlockState updateBlock) {
+    default BackroomsPortalBlock.SpawnLocation selectStartPosition(BlockPos origin, ServerWorld level, @Nullable BlockState updateBlock) {
         Optional<BlockPos> startPosition = Optional.empty();
         Optional<Float> rotation = Optional.empty();
         int y = 50; // from the feet position
@@ -235,18 +235,18 @@ public interface LevelPortal extends Portal {
         for (int x = 0; x < 16 && startPosition.isEmpty(); x++) {
             for (int z = 0; z < 16 && startPosition.isEmpty(); z++) {
                 BlockPos position = origin.offset(x, 0, z).atY(y);
-                if (level.isInWorldBounds(position)) {
+                if (level.isInBuildLimit(position)) {
                     BackroomsMod.LOGGER.info("[BackroomsMod+selectStartPosition] Looking for {}", position);
                     BlockState currentState = level.getBlockState(position);
-                    BlockState currentAboveState = level.getBlockState(position.above(1));
+                    BlockState currentAboveState = level.getBlockState(position.up(1));
 
-                    if (currentState.canBeReplaced() && currentAboveState.canBeReplaced()) {
+                    if (currentState.isReplaceable() && currentAboveState.isReplaceable()) {
                         Direction spawnDirection = LevelPortal.getSpawnDirection(position, level);
 
                         if (updateBlock != null) {
-                            Optional<Direction> hasFacing = updateBlock.getOptionalValue(HorizontalDirectionalBlock.FACING);
+                            Optional<Direction> hasFacing = updateBlock.getOrEmpty(HorizontalFacingBlock.FACING);
                             if (hasFacing.isPresent()) {
-                                updateBlock = updateBlock.setValue(HorizontalDirectionalBlock.FACING, spawnDirection);
+                                updateBlock = updateBlock.setValue(HorizontalFacingBlock.FACING, spawnDirection);
                             }
                         }
 
@@ -255,7 +255,7 @@ public interface LevelPortal extends Portal {
                         if (isValid) {
                             BackroomsMod.LOGGER.info("[BackroomsMod+selectStartPosition] Found start for {}", position);
                             startPosition = Optional.of(position);
-                            rotation = Optional.of(spawnDirection.toYRot());
+                            rotation = Optional.of(spawnDirection.asRotation());
                         }
                     }
                 }
@@ -265,24 +265,24 @@ public interface LevelPortal extends Portal {
         return new BackroomsPortalBlock.SpawnLocation(startPosition.orElse(BlockPos.ZERO), rotation.orElse(0.0f));
     }
 
-    private boolean isPositionValid(BlockPos expectedStart, ServerLevel level, Direction spawnDirection, @Nullable BlockState updateBlock) {
+    private boolean isPositionValid(BlockPos expectedStart, ServerWorld level, Direction spawnDirection, @Nullable BlockState updateBlock) {
         Direction backDirection = spawnDirection.getOpposite();
-        BlockPos backSpawn = expectedStart.offset(backDirection.getStepX(), backDirection.getStepY(), backDirection.getStepZ());
+        BlockPos backSpawn = expectedStart.offset(backDirection.getOffsetX(), backDirection.getOffsetY(), backDirection.getOffsetZ());
 
         Block currentBlock = level.getBlockState(backSpawn).getBlock();
-        Block topBlock = level.getBlockState(backSpawn.above(1)).getBlock();
+        Block topBlock = level.getBlockState(backSpawn.up(1)).getBlock();
 
         boolean isValid = (currentBlock == this.invalidBlock() && topBlock == this.invalidBlock()) || (currentBlock == this && topBlock == this);
 
         if (isValid && updateBlock != null) {
-            level.setBlockAndUpdate(backSpawn, updateBlock);
-            level.setBlockAndUpdate(backSpawn.above(1), updateBlock);
+            level.setBlockState(backSpawn, updateBlock);
+            level.setBlockState(backSpawn.up(1), updateBlock);
         }
 
         return isValid;
     }
 
-    private static Direction getSpawnDirection(BlockPos expectedStart, ServerLevel level) {
+    private static Direction getSpawnDirection(BlockPos expectedStart, ServerWorld level) {
         BlockState pxBlock = level.getBlockState(expectedStart.offset(1, 0, 0));
         if (pxBlock.canBeReplaced()) {
             return Direction.EAST;
@@ -307,7 +307,7 @@ public interface LevelPortal extends Portal {
     }
 
     @Override
-    default int getPortalTransitionTime(ServerLevel level, Entity entity) {
+    default int getPortalTransitionTime(ServerWorld level, Entity entity) {
         return 0;
     }
 

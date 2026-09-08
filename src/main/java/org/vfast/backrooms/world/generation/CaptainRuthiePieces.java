@@ -1,23 +1,21 @@
 package org.vfast.backrooms.world.generation;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.Identifier;
-import net.minecraft.util.RandomSource;
-import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.ServerLevelAccessor;
-import net.minecraft.world.level.StructureManager;
-import net.minecraft.world.level.WorldGenLevel;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.Mirror;
-import net.minecraft.world.level.block.Rotation;
-import net.minecraft.world.level.chunk.ChunkGenerator;
-import net.minecraft.world.level.levelgen.Heightmap.Types;
-import net.minecraft.world.level.levelgen.structure.BoundingBox;
-import net.minecraft.world.level.levelgen.structure.StructurePieceAccessor;
-import net.minecraft.world.level.levelgen.structure.TemplateStructurePiece;
-import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext;
-import net.minecraft.world.level.levelgen.structure.templatesystem.*;
+
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.structure.*;
+import net.minecraft.structure.processor.BlockIgnoreStructureProcessor;
+import net.minecraft.util.BlockMirror;
+import net.minecraft.util.BlockRotation;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.math.BlockBox;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.math.random.Random;
+import net.minecraft.world.ServerWorldAccess;
+import net.minecraft.world.StructureSpawns;
+import net.minecraft.world.StructureWorldAccess;
+import net.minecraft.world.gen.StructureAccessor;
+import net.minecraft.world.gen.chunk.ChunkGenerator;
 
 import java.util.List;
 
@@ -37,7 +35,7 @@ public class CaptainRuthiePieces {
 
     /** NBT structure template location: assets/backrooms/structures/overworld/captain_ruthie.nbt */
     private static final Identifier STRUCTURE_LOCATION =
-            Identifier.fromNamespaceAndPath("backrooms", "overworld/captain_ruthie");
+            Identifier.of("backrooms", "overworld/captain_ruthie");
 
     /**
      * The rotation pivot of your template. Adjust X/Y/Z to match the centre of
@@ -49,7 +47,7 @@ public class CaptainRuthiePieces {
 
     // -------------------------------------------------------------------------
 
-    public static void addPieces(final StructureTemplateManager structureTemplateManager, final BlockPos position, final Rotation rotation, final StructurePieceAccessor structurePieceAccessor) {
+    public static void addPieces(final StructureTemplateManager structureTemplateManager, final BlockPos position, final BlockRotation rotation, final StructurePiecesHolder structurePieceAccessor) {
         structurePieceAccessor.addPiece(
                 new CaptainRuthiePieces.CaptainRuthiePiece(structureTemplateManager, position, rotation)
         );
@@ -57,40 +55,45 @@ public class CaptainRuthiePieces {
 
     // -------------------------------------------------------------------------
 
-    public static class CaptainRuthiePiece extends TemplateStructurePiece {
+    public static class CaptainRuthiePiece extends SimpleStructurePiece {
 
-        public CaptainRuthiePiece(final StructureTemplateManager structureTemplateManager, final BlockPos position, final Rotation rotation) {
+        public CaptainRuthiePiece(final StructureTemplateManager structureTemplateManager, final BlockPos position, final BlockRotation rotation) {
             super(BackroomsPieceTypes.CAPTAIN_RUTHIE_PIECE, 0, structureTemplateManager, STRUCTURE_LOCATION, STRUCTURE_LOCATION.toString(), makeSettings(rotation), position);
         }
 
         /** Deserialization constructor — called when loading a saved chunk. */
-        public CaptainRuthiePiece(final StructureTemplateManager structureTemplateManager, final CompoundTag tag) {
-            super(BackroomsPieceTypes.CAPTAIN_RUTHIE_PIECE, tag, structureTemplateManager, _ -> makeSettings(tag.read("Rot", Rotation.LEGACY_CODEC).orElseThrow()));
+        public CaptainRuthiePiece(final StructureTemplateManager structureTemplateManager, final NbtCompound tag) {
+            super(
+                    BackroomsPieceTypes.CAPTAIN_RUTHIE_PIECE,
+                    tag,
+                    structureTemplateManager,
+                    ignored -> makeSettings(tag.read("Rot", BlockRotation.LEGACY_CODEC).orElseThrow())
+            );
         }
 
         // -- Helpers ----------------------------------------------------------
 
-        private static StructurePlaceSettings makeSettings(final Rotation rotation) {
-            return new StructurePlaceSettings()
+        private static StructurePlacementData makeSettings(final BlockRotation rotation) {
+            return new StructurePlacementData()
                     .setRotation(rotation)
-                    .setMirror(Mirror.NONE)
+                    .setMirror(BlockMirror.NONE)
                     .setRotationPivot(PIVOT)
-                    .addProcessor(BlockIgnoreProcessor.STRUCTURE_BLOCK)
-                    .setLiquidSettings(LiquidSettings.IGNORE_WATERLOGGING);
+                        .addProcessor(BlockIgnoreStructureProcessor.STRUCTURE_BLOCK)
+                    .setLiquidSettings(StructureLiquidSettings.IGNORE_WATERLOGGING);
         }
 
         // -- Serialization ----------------------------------------------------
 
         @Override
-        protected void addAdditionalSaveData(final StructurePieceSerializationContext context, final CompoundTag tag) {
+        protected void addAdditionalSaveData(final StructureContext context, final NbtCompound tag) {
             super.addAdditionalSaveData(context, tag);
-            tag.store("Rot", Rotation.LEGACY_CODEC, this.placeSettings.getRotation());
+            tag.store("Rot", BlockRotation.LEGACY_CODEC, this.placeSettings.getRotation());
         }
 
         // -- Data markers (add chest / spawner logic here if needed) ----------
 
         @Override
-        protected void handleDataMarker(final String markerId, final BlockPos position, final ServerLevelAccessor level, final RandomSource random, final BoundingBox chunkBB) {
+        protected void handleDataMarker(final String markerId, final BlockPos position, final ServerWorldAccess level, final Random random, final BlockBox chunkBB) {
             // Add any data-marker handling here (e.g. loot chests, mob spawners).
             // Leave empty if your template has no data markers.
         }
@@ -98,7 +101,7 @@ public class CaptainRuthiePieces {
         // -- Placement --------------------------------------------------------
 
         @Override
-        public void postProcess(final WorldGenLevel level, final StructureManager structureManager, final ChunkGenerator generator, final RandomSource random, final BoundingBox chunkBB, final ChunkPos chunkPos, final BlockPos referencePos) {
+        public void postProcess(final StructureWorldAccess level, final StructureAccessor structureManager, final ChunkGenerator generator, final Random random, final StructureSpawns.BoundingBox chunkBB, final ChunkPos chunkPos, final BlockPos referencePos) {
             // Snap to the actual world surface at the structure's XZ position,
             // then bury the top of the template BURIAL_DEPTH blocks underground.
             int surfaceY = level.getHeight(Types.WORLD_SURFACE_WG, this.templatePosition.getX(), this.templatePosition.getZ());

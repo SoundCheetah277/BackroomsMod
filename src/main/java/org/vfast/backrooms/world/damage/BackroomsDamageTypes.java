@@ -1,11 +1,11 @@
 package org.vfast.backrooms.world.damage;
 
-import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.world.damagesource.DamageType;
+import net.minecraft.entity.damage.DamageType;
+import net.minecraft.registry.Registries;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.util.Identifier;
 import org.vfast.backrooms.BackroomsMod;
 
 public class BackroomsDamageTypes {
-    public static final ResourceKey<DamageType> NYCTOPHOBIA = ResourceKey.create(Registries.DAMAGE_TYPE, Identifier.fromNamespaceAndPath(BackroomsMod.ID, "nyctophobia"));
+    public static final RegistryKey<DamageType> NYCTOPHOBIA = RegistryKey.of(Registries.DAMAGE_TYPE, Identifier.of(BackroomsMod.ID, "nyctophobia"));
 }

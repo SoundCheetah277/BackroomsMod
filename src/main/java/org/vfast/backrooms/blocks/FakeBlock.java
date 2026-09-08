@@ -1,43 +1,41 @@
 package org.vfast.backrooms.blocks;
 
 import com.mojang.serialization.MapCodec;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.particles.BlockParticleOption;
-import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.util.Mth;
-import net.minecraft.util.RandomSource;
-import net.minecraft.util.StringRepresentable;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.InsideBlockEffectApplier;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.item.context.BlockPlaceContext;
-import net.minecraft.world.level.BlockGetter;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.SoundType;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.StateDefinition;
-import net.minecraft.world.level.block.state.properties.EnumProperty;
-import net.minecraft.world.level.pathfinder.PathComputationType;
-import net.minecraft.world.level.portal.TeleportTransition;
-import net.minecraft.world.phys.Vec3;
-import net.minecraft.world.phys.shapes.CollisionContext;
-import net.minecraft.world.phys.shapes.Shapes;
-import net.minecraft.world.phys.shapes.VoxelShape;
-import org.jspecify.annotations.Nullable;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.ShapeContext;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.ai.pathing.NavigationType;
+import net.minecraft.item.ItemPlacementContext;
+import net.minecraft.particle.BlockStateParticleEffect;
+import net.minecraft.particle.ParticleTypes;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.BlockSoundGroup;
+import net.minecraft.state.StateManager;
+import net.minecraft.state.property.EnumProperty;
+import net.minecraft.util.StringIdentifiable;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.random.Random;
+import net.minecraft.util.shape.VoxelShape;
+import net.minecraft.util.shape.VoxelShapes;
+import net.minecraft.world.BlockView;
+import net.minecraft.world.World;
+import org.jetbrains.annotations.Nullable;
 import org.vfast.backrooms.interfaces.LevelPortal;
 import org.vfast.backrooms.world.BackroomsLevels;
 
 import java.util.Set;
 
 public class FakeBlock extends Block implements LevelPortal {
-    public static final MapCodec<FakeBlock> CODEC = simpleCodec(FakeBlock::new);
+    public static final MapCodec<FakeBlock> CODEC = createCodec(FakeBlock::new);
 
-    public static final EnumProperty<FakeBlock.Mimic> MIMIC = EnumProperty.create("mimic_block", FakeBlock.Mimic.class);
+    public static final EnumProperty<Mimic> MIMIC = EnumProperty.of("mimic_block", FakeBlock.Mimic.class);
 
     public FakeBlock(Properties properties) {
         super(properties);
@@ -45,17 +43,17 @@ public class FakeBlock extends Block implements LevelPortal {
     }
 
     @Override
-    public void entityInside(BlockState state, Level level, BlockPos pos, Entity entity, InsideBlockEffectApplier effectApplier, boolean isPrecise) {
+    public void entityInside(BlockState state, World level, BlockPos pos, Entity entity, InsideBlockEffectApplier effectApplier, boolean isPrecise) {
         LevelPortal.super.entityInside(state, level, pos, entity, EntityBounding.HEAD);
 
-        RandomSource random = level.getRandom();
-        entity.makeStuckInBlock(state, new Vec3(0.9F, 1.5, 0.9F));
-        BlockParticleOption particle = new BlockParticleOption(ParticleTypes.BLOCK, state);
-        level.addAlwaysVisibleParticle(
+        Random random = level.getRandom();
+        entity.slowMovement(state, new Vec3d(0.9F, 1.5, 0.9F));
+        BlockStateParticleEffect particle = new BlockStateParticleEffect(ParticleTypes.BLOCK, state);
+        level.addImportantParticle(
                 particle,
-                entity.getX() + Mth.randomBetween(random, -1.0F, 1.0F) * 0.3f,
+                entity.getX() + MathHelper.nextBetween(random, -1.0F, 1.0F) * 0.3f,
                 pos.getY() + 1,
-                entity.getZ()  + Mth.randomBetween(random, -1.0F, 1.0F) * 0.3f,
+                entity.getZ()  + MathHelper.nextBetween(random, -1.0F, 1.0F) * 0.3f,
                 0.0f,
                 0.0f,
                 0.0f
@@ -63,19 +61,19 @@ public class FakeBlock extends Block implements LevelPortal {
     }
 
     @Override
-    public @Nullable TeleportTransition getPortalDestination(ServerLevel currentLevel, Entity entity, BlockPos portalEntryPos) {
+    public @Nullable TeleportTransition getPortalDestination(ServerWorld currentLevel, Entity entity, BlockPos portalEntryPos) {
         assert entity.isAlive();
         this.prepareEntity(entity, true);
 
-        ResourceKey<Level> dimension = BackroomsLevels.LEVEL_0;
-        ServerLevel newLevel = currentLevel.getServer().getLevel(dimension);
+        RegistryKey<World> dimension = BackroomsLevels.LEVEL_0;
+        ServerWorld newLevel = currentLevel.getServer().getWorld(dimension);
 
         if (newLevel != null && newLevel != currentLevel) {
             LevelPortal.SpawnLocation spawnLoc = this.selectStartPosition(portalEntryPos, newLevel, null);
 
-            if (entity instanceof ServerPlayer) {
-                ServerPlayer.RespawnConfig respawn = LevelPortal.getSpawnConfig(spawnLoc.position(), spawnLoc.yRot(), spawnLoc.xRot(), dimension);
-                ((ServerPlayer) entity).setRespawnPosition(respawn, false);
+            if (entity instanceof ServerPlayerEntity) {
+                ServerPlayerEntity.RespawnConfig respawn = LevelPortal.getSpawnConfig(spawnLoc.position(), spawnLoc.yRot(), spawnLoc.xRot(), dimension);
+                ((ServerPlayerEntity) entity).setRespawnPosition(respawn, false);
             }
 
             this.prepareEntity(entity, false);
@@ -84,9 +82,9 @@ public class FakeBlock extends Block implements LevelPortal {
             double x = blockPos.getX() + 0.5d;
             double y = blockPos.getY();
             double z = blockPos.getZ() + 0.5d;
-            Vec3 pos = new Vec3(x, y, z);
+            Vec3d pos = new Vec3d(x, y, z);
 
-            return new TeleportTransition(newLevel, pos, Vec3.ZERO, spawnLoc.yRot(), spawnLoc.xRot(), Set.of(), LevelPortal::affectPlayer);
+            return new TeleportTransition(newLevel, pos, Vec3d.ZERO, spawnLoc.yRot(), spawnLoc.xRot(), Set.of(), LevelPortal::affectPlayer);
         } else {
             this.prepareEntity(entity, false);
             return null;
@@ -100,21 +98,21 @@ public class FakeBlock extends Block implements LevelPortal {
     }
 
     @Override
-    public BlockState getStateForPlacement(BlockPlaceContext context) {
-        return defaultBlockState().setValue(MIMIC, Mimic.GRASS);
+    public BlockState getStateForPlacement(ItemPlacementContext context) {
+        return getDefaultState().setValue(MIMIC, Mimic.GRASS);
     }
     @Override
-    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+    protected void createBlockStateDefinition(StateManager.Builder<Block, BlockState> builder) {
         builder.add(MIMIC);
     }
 
     @Override
-    protected VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
-        return Shapes.empty();
+    protected VoxelShape getCollisionShape(BlockState state, BlockView level, BlockPos pos, ShapeContext context) {
+        return VoxelShapes.empty();
     }
 
     @Override
-    protected SoundType getSoundType(BlockState state) {
+    protected BlockSoundGroup getSoundType(BlockState state) {
         return state.getValue(MIMIC).getSoundType();
     }
 
@@ -129,11 +127,11 @@ public class FakeBlock extends Block implements LevelPortal {
     }
 
     @Override
-    protected boolean isPathfindable(BlockState state, PathComputationType type) {
+    protected boolean isPathfindable(BlockState state, NavigationType type) {
         return true;
     }
 
-    enum Mimic implements StringRepresentable {
+    enum Mimic implements StringIdentifiable {
         GRASS,
         SAND;
 
@@ -145,10 +143,10 @@ public class FakeBlock extends Block implements LevelPortal {
             };
         }
 
-        public SoundType getSoundType() {
+        public BlockSoundGroup getSoundType() {
             return switch (this) {
-                case GRASS -> SoundType.GRASS;
-                case SAND -> SoundType.SAND;
+                case GRASS -> BlockSoundGroup.GRASS;
+                case SAND -> BlockSoundGroup.SAND;
             };
         }
 
